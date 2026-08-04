@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Meeting Pro",
+    "slug": "whatsapp-transcriber",
+    "scheme": "meetingpro",
+    "version": "1.0.0",
+    "sdkVersion": "54.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": ["assets/**"],
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a1628"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.vilatech.meetingpro",
+      "minimumOsVersion": "16.0",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Meeting Pro needs microphone access to transcribe live meetings and WhatsApp calls.",
+        "NSSpeechRecognitionUsageDescription": "Meeting Pro uses speech recognition to convert voice notes and meetings into searchable transcripts.",
+        "UIBackgroundModes": ["audio", "fetch"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a1628"
+      },
+      "package": "com.vilatech.meetingpro",
+      "permissions": [
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/icon.png"
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-splash-screen"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "placeholder-update-before-build"
+      }
+    },
+    "owner": "vilatechorg"
+  }
+}
