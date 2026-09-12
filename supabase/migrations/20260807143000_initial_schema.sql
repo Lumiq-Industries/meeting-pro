@@ -34,7 +34,13 @@ create extension if not exists pg_trgm with schema extensions;
 create type public.member_role as enum ('owner', 'admin', 'member');
 
 -- Meta documents exactly two call directions: business-initiated and user-initiated.
-create type public.call_direction as enum ('business_initiated', 'user_initiated');
+-- 'unknown' is ours, not Meta's. The call_transcription_available webhook carries
+-- no direction field, and Meta gives no ordering guarantee between the lifecycle
+-- and transcription webhooks (it retries for up to seven days). A transcript must
+-- never be blocked from landing just because its lifecycle event has not arrived,
+-- so the call row is created with 'unknown' and upgraded in place when the
+-- lifecycle event turns up.
+create type public.call_direction as enum ('business_initiated', 'user_initiated', 'unknown');
 
 -- Our own pipeline state for a transcript, not Meta's.
 create type public.transcript_status as enum (
@@ -293,6 +299,9 @@ create table public.calls (
   -- Globally unique across tenants: a Meta call id identifies exactly one call.
   meta_call_id          text not null unique,
 
+  -- Not nullable: a row always states what is known, including that nothing is.
+  -- 'unknown' means the lifecycle webhook has not been seen yet, not that the
+  -- call had no direction. Expect it to be transient.
   direction             public.call_direction not null,
 
   -- The other party. For a user-initiated call this is the customer calling in.
@@ -334,6 +343,12 @@ comment on table public.calls is
   'NOTE FOR INGEST: entry[].changes[].value.calls is an ARRAY — a single webhook '
   'POST can carry several call objects. The Edge Function must loop over it and '
   'upsert one row per element, not read calls[0].';
+
+comment on column public.calls.direction is
+  'business_initiated / user_initiated come from Meta. ''unknown'' is ours: it '
+  'marks a call row created from a call_transcription_available webhook, which '
+  'carries no direction field. The lifecycle webhook upgrades it in place when it '
+  'arrives. A row left on ''unknown'' for long means a lifecycle event was lost.';
 
 comment on column public.calls.meta_call_id is
   'Meta''s identifier for the call, from entry[].changes[].value.calls[].id, '
