@@ -18,6 +18,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { handleRequest } from "./src/handler.ts";
 import { SupabaseDb } from "./src/supabase-db.ts";
 import { logError } from "./src/log.ts";
+import { resolveAccessToken } from "../_shared/meta-token.ts";
 
 const appSecret = Deno.env.get("META_APP_SECRET") ?? "";
 const verifyToken = Deno.env.get("META_VERIFY_TOKEN") ?? "";
@@ -37,23 +38,6 @@ const client = createClient(supabaseUrl, serviceRoleKey, {
   auth: { persistSession: false },
 });
 const db = new SupabaseDb(client);
-
-/**
- * Resolve the Meta access token for a tenant.
- *
- * TODO(tenancy): the schema stores whatsapp_numbers.access_token_secret_id, a
- * pointer into Supabase Vault, precisely so per-tenant tokens are never held in
- * application tables. Reading Vault requires a SECURITY DEFINER function that the
- * committed migration does not yet define, so this falls back to a single
- * environment token. That is correct for a single-business deployment and WRONG
- * for multi-tenant, which is the stated direction — it must be replaced before a
- * second business is onboarded.
- */
-async function resolveAccessToken(_businessId: string, _numberId: string | null): Promise<string> {
-  const token = Deno.env.get("META_ACCESS_TOKEN") ?? "";
-  if (!token) throw new Error("META_ACCESS_TOKEN is not set");
-  return token;
-}
 
 Deno.serve(async (req: Request) => {
   const { response, processing } = await handleRequest(

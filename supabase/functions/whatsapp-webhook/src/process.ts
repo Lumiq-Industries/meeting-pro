@@ -1,14 +1,14 @@
 import { buildDedupeKey, canonicalJson } from "./dedupe.ts";
 import { sha256Hex } from "./crypto.ts";
 import { DuplicateEventError } from "./db.ts";
-import type { Db, SegmentInsert } from "./db.ts";
+import type { Db } from "./db.ts";
 import { MetaClient } from "./meta.ts";
+import { fetchAndStoreTranscript } from "./transcript.ts";
 import { logError, logInfo, logWarn, redact, shortId } from "./log.ts";
 import type {
   MetaCallObject,
   MetaChangeValue,
   MetaStatusObject,
-  MetaTranscriptDocument,
   MetaWebhookBody,
 } from "./types.ts";
 
@@ -67,26 +67,6 @@ function counterparty(call: MetaCallObject, direction: string | null) {
   };
 }
 
-function segmentsFrom(
-  doc: MetaTranscriptDocument,
-  businessId: string,
-  transcriptId: string,
-): SegmentInsert[] {
-  const segments = doc.transcript?.segments ?? [];
-  return segments.map((seg, index) => ({
-    business_id: businessId,
-    transcript_id: transcriptId,
-    segment_index: index,
-    meta_segment_id: seg.id === undefined || seg.id === null ? null : String(seg.id),
-    speaker: seg.speaker ?? null,
-    channel: typeof seg.channel === "number" ? seg.channel : null,
-    start_seconds: typeof seg.start === "number" ? seg.start : null,
-    end_seconds: typeof seg.end === "number" ? seg.end : null,
-    text: seg.text ?? null,
-    confidence: typeof seg.confidence === "number" ? seg.confidence : null,
-    words: seg.words ?? null,
-  }));
-}
 
 /**
  * Handle one call object end to end.
@@ -278,50 +258,13 @@ async function ingestTranscript(
     return;
   }
 
-  const token = await deps.resolveAccessToken(route.business_id, route.whatsapp_number_id);
-  const client = deps.makeMetaClient
-    ? deps.makeMetaClient(token)
-    : new MetaClient(token);
-
-  const { document, usedFallback } = await client.fetchTranscriptDocument(doc, phoneNumberId);
-  const t = document.transcript ?? {};
-  const now = (deps.now ?? (() => new Date()))();
-
-  const { id: transcriptId } = await deps.db.upsertTranscript({
-    business_id: route.business_id,
-    call_id: existing.id,
-    meta_media_id: doc.id,
-    media_sha256: doc.sha256 ?? null,
-    language: t.language ?? null,
-    confidence: typeof t.confidence === "number" ? t.confidence : null,
-    duration_seconds: typeof t.duration === "number"
-      ? t.duration
-      : (typeof document.metadata?.audio?.duration === "number"
-        ? document.metadata.audio.duration
-        : null),
-    full_text: t.text ?? null,
-    raw: document, // the complete document, kept verbatim
-    fetched_at: now.toISOString(),
-    status: "ready",
-  });
-
-  // Replace rather than append: reprocessing the same transcript must not
-  // duplicate segments. The unique (transcript_id, segment_index) constraint in
-  // the schema would reject duplicates anyway; replacing makes reprocessing after
-  // a corrected document work too.
-  await deps.db.replaceSegments(
-    transcriptId,
-    segmentsFrom(document, route.business_id, transcriptId),
-  );
-
-  // Note what is NOT here: no transcript text, no token. Counts and ids only.
-  logInfo("webhook.transcript_ingested", {
-    call_id: shortId(call.id),
-    media_id: doc.id,
-    segments: document.transcript?.segments?.length ?? 0,
-    language: t.language ?? null,
-    used_media_api_fallback: usedFallback,
-  });
+  await fetchAndStoreTranscript(doc, {
+    businessId: route.business_id,
+    whatsappNumberId: route.whatsapp_number_id,
+    callRowId: existing.id,
+    metaCallId: call.id,
+    phoneNumberId,
+  }, deps);
 }
 
 /**

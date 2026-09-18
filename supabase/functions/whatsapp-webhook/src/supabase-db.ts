@@ -9,6 +9,7 @@ import type {
   CallUpsert,
   Db,
   NumberRoute,
+  RetryTarget,
   SegmentInsert,
   TranscriptUpsert,
   WebhookEventRow,
@@ -126,5 +127,30 @@ export class SupabaseDb implements Db {
     if (segments.length === 0) return;
     const { error } = await this.client.from("transcript_segments").insert(segments);
     if (error) throw new Error(`transcript_segments insert failed: ${error.message}`);
+  }
+
+  async getRetryTarget(transcriptId: string): Promise<RetryTarget | null> {
+    const { data, error } = await this.client
+      .from("transcripts")
+      .select(
+        "id, call_id, business_id, status, meta_media_id, media_sha256, created_at, " +
+          "calls ( meta_call_id, whatsapp_number_id, whatsapp_numbers ( phone_number_id ) )",
+      )
+      .eq("id", transcriptId)
+      .maybeSingle();
+    if (error) throw new Error(`transcripts retry lookup failed: ${error.message}`);
+    if (!data) return null;
+    return {
+      transcript_id: data.id,
+      call_id: data.call_id,
+      business_id: data.business_id,
+      status: data.status,
+      meta_media_id: data.meta_media_id,
+      media_sha256: data.media_sha256,
+      created_at: data.created_at,
+      meta_call_id: data.calls?.meta_call_id ?? "",
+      whatsapp_number_id: data.calls?.whatsapp_number_id ?? null,
+      phone_number_id: data.calls?.whatsapp_numbers?.phone_number_id ?? null,
+    };
   }
 }

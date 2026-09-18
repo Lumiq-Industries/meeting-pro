@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { handleRequest, handleVerification } from "../src/handler.ts";
+import { retryTranscript } from "../src/retry.ts";
 import { timingSafeEqual } from "../src/crypto.ts";
 import { sha256Hex } from "../src/crypto.ts";
 import { buildDedupeKey, canonicalJson } from "../src/dedupe.ts";
@@ -327,10 +328,21 @@ test("an expired download URL falls back to the Media API", async () => {
   assert.ok(urls.some((u) => u.includes("/fresh/")), "downloaded from the fresh URL");
 });
 
-test("a document failing its sha256 check is discarded, not stored", async () => {
+test("a document failing its sha256 check is recorded as failed, with no content", async () => {
   const { db, outcome } = await deliverLifecycleThenTranscript({ corruptBody: true });
   assert.equal(outcome?.errors, 1);
-  assert.equal(db.transcripts.length, 0, "nothing persisted from an unverified document");
+
+  // The failure is visible, so the call does not silently vanish from the app...
+  assert.equal(db.transcripts.length, 1);
+  const t = db.transcripts[0];
+  assert.equal(t.status, "failed");
+  // ...but nothing from the unverified document was stored.
+  assert.equal(t.full_text, null, "no unverified text");
+  assert.equal(t.raw, null, "no unverified document");
+  assert.equal(db.segmentsFor(t.id).length, 0, "no unverified segments");
+  // Meta's references are kept, so a retry knows what to fetch and verify.
+  assert.equal(t.meta_media_id, "1002764438271669");
+  assert.ok(t.media_sha256);
 
   const evt = db.events.find((e) => e.event_type === "call_transcription_available")!;
   assert.equal(evt.processed_at !== null, true);
@@ -567,7 +579,7 @@ test("logs contain neither the access token nor transcript text", async () => {
   assert.ok(!all.includes("Thandi speaking"), "transcript text never logged");
   assert.ok(!all.includes(APP_SECRET), "app secret never logged");
   // The useful diagnostics are still there.
-  assert.ok(all.includes("webhook.transcript_ingested"), "ingest is traceable");
+  assert.ok(all.includes("transcript.stored"), "ingest is traceable");
   assert.ok(all.includes("1002764438271669"), "media id logged for correlation");
   assert.ok(all.includes('"segments":4'), "segment count logged");
   assert.ok(all.includes(PHONE_NUMBER_ID), "routing key logged");
@@ -583,4 +595,125 @@ test("the access token is sent to Meta as a Bearer header", async () => {
   for (const c of deps.fetchRecorder.calls) {
     assert.equal(c.authorization, `Bearer ${ACCESS_TOKEN}`);
   }
+});
+
+// ---------------------------------------------------------------------------
+// 10. Failed transcripts are visible, and can be retried
+// ---------------------------------------------------------------------------
+
+test("a download that fails outright leaves a visible failed transcript", async () => {
+  // Webhook link expired AND the Media API refused: nothing could be fetched.
+  const { db, outcome } = await deliverLifecycleThenTranscript({
+    directUrlExpired: true,
+    mediaApiFails: true,
+  });
+  assert.equal(outcome?.errors, 1);
+  assert.equal(db.transcripts.length, 1, "the call has a transcript row the app can show");
+  assert.equal(db.transcripts[0].status, "failed");
+  assert.match(
+    db.events.find((e) => e.event_type === "call_transcription_available")!.error!,
+    /Media API lookup failed/,
+  );
+});
+
+test("a failed re-fetch never overwrites a transcript that is already ready", async () => {
+  const { db, deps } = await deliverLifecycleThenTranscript();
+  const good = db.transcripts[0];
+  assert.equal(good.status, "ready");
+
+  // A later event naming a different hash, whose download then fails the check.
+  const body = fixtureJson<MetaWebhookBody>("03-call-transcription-available.json");
+  const doc = body.entry![0].changes![0].value!.calls![0].call_transcript!.document!;
+  doc.sha256 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+  body.entry![0].changes![0].value!.calls![0].timestamp = "1757699999";
+  const { processing } = await handleRequest(await signedRequest(JSON.stringify(body)), CONFIG, deps);
+  const outcome = await processing;
+
+  assert.equal(outcome?.errors, 1, "the bad download is still reported");
+  assert.equal(db.transcripts.length, 1);
+  assert.equal(db.transcripts[0].status, "ready", "not downgraded to failed");
+  assert.match(db.transcripts[0].full_text!, /quarterly reconciliation/, "content intact");
+  assert.equal(db.segmentsFor(good.id).length, 4, "segments intact");
+});
+
+/** A failed transcript, ready to be retried. */
+async function failedTranscript() {
+  const { db } = await deliverLifecycleThenTranscript({
+    directUrlExpired: true,
+    mediaApiFails: true,
+  });
+  assert.equal(db.transcripts[0].status, "failed");
+  return { db, transcriptId: db.transcripts[0].id };
+}
+
+const allow = () => Promise.resolve(true);
+const deny = () => Promise.resolve(false);
+
+test("retry: a failed transcript is fetched through the Media API and becomes ready", async () => {
+  const { db, transcriptId } = await failedTranscript();
+  const deps = makeDeps(db); // Meta is reachable again
+
+  const result = await retryTranscript(transcriptId, allow, deps);
+
+  assert.equal(result.outcome, "ready");
+  assert.equal(db.transcripts[0].status, "ready");
+  assert.match(db.transcripts[0].full_text!, /quarterly reconciliation/);
+  assert.equal(db.segmentsFor(transcriptId).length, 4);
+
+  const urls = deps.fetchRecorder.calls.map((c) => c.url);
+  assert.ok(!urls.some((u) => u.includes("?mid=")), "never tried the long-expired webhook link");
+  assert.ok(urls.some((u) => u.includes("graph.facebook.com")), "went to the Media API");
+  assert.ok(urls.some((u) => u.includes(`phone_number_id=${PHONE_NUMBER_ID}`)), "scoped to the tenant's number");
+});
+
+test("retry: when Meta still refuses, the transcript stays failed and says so", async () => {
+  const { db, transcriptId } = await failedTranscript();
+  const result = await retryTranscript(transcriptId, allow, makeDeps(db, { mediaApiFails: true }));
+  assert.equal(result.outcome, "failed");
+  assert.equal(db.transcripts[0].status, "failed");
+  assert.ok(!/HTTP|lookup|sha256/i.test(result.message), "no technical detail in the customer message");
+});
+
+test("retry: a caller who cannot see the transcript gets not_found and nothing runs", async () => {
+  const { db, transcriptId } = await failedTranscript();
+  const deps = makeDeps(db);
+  const result = await retryTranscript(transcriptId, deny, deps);
+  assert.equal(result.outcome, "not_found", "reported as missing, not forbidden");
+  assert.equal(deps.fetchRecorder.calls.length, 0, "Meta was never contacted");
+  assert.equal(db.transcripts[0].status, "failed", "nothing changed");
+});
+
+test("retry: an unknown transcript id is not_found", async () => {
+  const deps = makeDeps(freshDb());
+  const result = await retryTranscript("no-such-id", allow, deps);
+  assert.equal(result.outcome, "not_found");
+  assert.equal(deps.fetchRecorder.calls.length, 0);
+});
+
+test("retry: a transcript that is already ready is left alone", async () => {
+  const { db } = await deliverLifecycleThenTranscript();
+  const deps = makeDeps(db);
+  const result = await retryTranscript(db.transcripts[0].id, allow, deps);
+  assert.equal(result.outcome, "already_ready");
+  assert.equal(deps.fetchRecorder.calls.length, 0, "no needless download");
+});
+
+test("retry: past Meta's 7-day retention it is refused without contacting Meta", async () => {
+  const { db, transcriptId } = await failedTranscript();
+  db.transcripts[0].created_at = new Date(Date.now() - 8 * 24 * 3600 * 1000).toISOString();
+  const deps = makeDeps(db);
+  const result = await retryTranscript(transcriptId, allow, deps);
+  assert.equal(result.outcome, "not_retryable");
+  assert.match(result.message, /7 days/);
+  assert.equal(deps.fetchRecorder.calls.length, 0);
+});
+
+test("retry: without Meta's hash there is nothing to verify against, so it refuses", async () => {
+  const { db, transcriptId } = await failedTranscript();
+  db.transcripts[0].media_sha256 = null;
+  const deps = makeDeps(db);
+  const result = await retryTranscript(transcriptId, allow, deps);
+  assert.equal(result.outcome, "not_retryable");
+  assert.equal(deps.fetchRecorder.calls.length, 0, "never downloads what it cannot verify");
+  assert.equal(db.transcripts[0].full_text, null);
 });

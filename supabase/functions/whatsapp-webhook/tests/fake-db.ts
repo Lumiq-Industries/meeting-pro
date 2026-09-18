@@ -11,6 +11,7 @@ import type {
   CallUpsert,
   Db,
   NumberRoute,
+  RetryTarget,
   SegmentInsert,
   TranscriptUpsert,
   WebhookEventRow,
@@ -25,7 +26,7 @@ export interface StoredEvent extends WebhookEventRow {
 export class FakeDb implements Db {
   readonly events: StoredEvent[] = [];
   readonly calls: (CallUpsert & { id: string })[] = [];
-  readonly transcripts: (TranscriptUpsert & { id: string })[] = [];
+  readonly transcripts: (TranscriptUpsert & { id: string; created_at: string })[] = [];
   readonly segments = new Map<string, SegmentInsert[]>();
   private readonly numbers = new Map<string, NumberRoute>();
   private seq = 0;
@@ -95,7 +96,7 @@ export class FakeDb implements Db {
       Object.assign(existing, row);
       return Promise.resolve({ id: existing.id });
     }
-    const created = { ...row, id: this.id("tr") };
+    const created = { ...row, id: this.id("tr"), created_at: new Date().toISOString() };
     this.transcripts.push(created);
     return Promise.resolve({ id: created.id });
   }
@@ -107,6 +108,28 @@ export class FakeDb implements Db {
     }
     this.segments.set(transcriptId, segments);
     return Promise.resolve();
+  }
+
+  getRetryTarget(transcriptId: string): Promise<RetryTarget | null> {
+    const t = this.transcripts.find((x) => x.id === transcriptId);
+    if (!t) return Promise.resolve(null);
+    const call = this.calls.find((c) => c.id === t.call_id);
+    let phoneNumberId: string | null = null;
+    for (const [pnid, route] of this.numbers) {
+      if (route.whatsapp_number_id === call?.whatsapp_number_id) phoneNumberId = pnid;
+    }
+    return Promise.resolve({
+      transcript_id: t.id,
+      call_id: t.call_id,
+      business_id: t.business_id,
+      status: t.status,
+      meta_media_id: t.meta_media_id,
+      media_sha256: t.media_sha256,
+      created_at: t.created_at,
+      meta_call_id: call?.meta_call_id ?? "",
+      whatsapp_number_id: call?.whatsapp_number_id ?? null,
+      phone_number_id: phoneNumberId,
+    });
   }
 
   segmentsFor(transcriptId: string): SegmentInsert[] {

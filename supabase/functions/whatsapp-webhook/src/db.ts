@@ -64,6 +64,20 @@ export interface SegmentInsert {
   words: unknown;
 }
 
+/** Everything the retry function needs about one transcript, read with the service role. */
+export interface RetryTarget {
+  transcript_id: string;
+  call_id: string;
+  business_id: string;
+  status: string;
+  meta_media_id: string | null;
+  media_sha256: string | null;
+  created_at: string;
+  meta_call_id: string;
+  whatsapp_number_id: string | null;
+  phone_number_id: string | null;
+}
+
 /** Raised by insertWebhookEvent when dedupe_key already exists. */
 export class DuplicateEventError extends Error {
   constructor(public readonly dedupeKey: string) {
@@ -95,4 +109,7 @@ export interface Db {
 
   /** Replace all segments for a transcript, so reprocessing cannot duplicate them. */
   replaceSegments(transcriptId: string, segments: SegmentInsert[]): Promise<void>;
+
+  /** Look up a transcript for retry. Bypasses RLS: authorise the caller first. */
+  getRetryTarget(transcriptId: string): Promise<RetryTarget | null>;
 }
