@@ -84,16 +84,13 @@ interface DbRow {
 // Adapter: database row -> UI Transcript
 // ---------------------------------------------------------------------------
 
-// MISMATCH: the database has four pipeline states, the UI has three display
-// states, and they mean different things. `failed` has no UI equivalent at all;
-// rendering it as "processing" would be a lie, so failed transcripts are left out
-// of the lists entirely (see isDisplayable). `live` exists only in the UI.
+// The database has four pipeline states and the UI four display states.
+// pending and fetching both read as "processing". `failed` is shown as failed,
+// with a retry — never hidden. `live` exists only in the UI.
 function mapStatus(status: DbTranscriptStatus): TranscriptStatus {
-  return status === 'ready' ? 'completed' : 'processing';
-}
-
-function isDisplayable(row: DbRow): boolean {
-  return row.status !== 'failed';
+  if (status === 'ready') return 'completed';
+  if (status === 'failed') return 'failed';
+  return 'processing';
 }
 
 // MISMATCH: the UI shows duration as a display string ("42 min"); the database
@@ -241,7 +238,7 @@ export function useTranscripts(): ListState {
         } else {
           setError(null);
           const rows = (data ?? []) as unknown as DbRow[];
-          setTranscripts(rows.filter(isDisplayable).map((r) => toTranscript(r).transcript));
+          setTranscripts(rows.map((r) => toTranscript(r).transcript));
         }
         setLoading(false);
       });
@@ -259,6 +256,7 @@ interface DetailState {
   error: string | null;
   source: DataSource;
   getSpeakerById: (id: string) => Speaker | undefined;
+  reload: () => void;
 }
 
 export function useTranscript(id: string): DetailState {
@@ -268,6 +266,8 @@ export function useTranscript(id: string): DetailState {
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
   const [loading, setLoading] = useState(DATA_SOURCE === 'supabase');
   const [error, setError] = useState<string | null>(null);
+  const [nonce, setNonce] = useState(0);
+  const reload = useCallback(() => setNonce((n) => n + 1), []);
 
   useEffect(() => {
     if (DATA_SOURCE === 'mock') return;
@@ -300,7 +300,7 @@ export function useTranscript(id: string): DetailState {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, nonce]);
 
   const getSpeakerById = useCallback(
     (speakerId: string) =>
@@ -310,5 +310,41 @@ export function useTranscript(id: string): DetailState {
     [speakers]
   );
 
-  return { transcript, loading, error, source: DATA_SOURCE, getSpeakerById };
+  return { transcript, loading, error, source: DATA_SOURCE, getSpeakerById, reload };
+}
+
+// ---------------------------------------------------------------------------
+// Retry
+// ---------------------------------------------------------------------------
+
+export interface RetryResult {
+  outcome: 'ready' | 'already_ready' | 'failed' | 'not_retryable' | 'not_found' | 'error';
+  message: string;
+}
+
+/**
+ * Ask the server to fetch a failed transcript from Meta again. Runs as the
+ * signed-in user: the retry-transcript function checks, through RLS, that they
+ * may see this transcript before doing anything.
+ */
+export async function retryTranscript(transcriptId: string): Promise<RetryResult> {
+  if (DATA_SOURCE === 'mock') {
+    return { outcome: 'error', message: 'Retry is not available with mock data.' };
+  }
+  const { data, error } = await supabase.functions.invoke<RetryResult>('retry-transcript', {
+    body: { transcript_id: transcriptId },
+  });
+  if (data?.outcome) return data;
+  // supabase-js reports any non-2xx as an error, so a 404 lands here too. Read
+  // the function's own message out of the response when there is one.
+  const context = (error as { context?: Response } | null)?.context;
+  if (context && typeof context.json === 'function') {
+    try {
+      const body = (await context.json()) as Partial<RetryResult>;
+      if (body.outcome && body.message) return body as RetryResult;
+    } catch {
+      // fall through to the generic message
+    }
+  }
+  return { outcome: 'error', message: 'Could not reach the server. Check your connection and try again.' };
 }

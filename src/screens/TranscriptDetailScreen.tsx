@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,14 +16,16 @@ import { SpeakerChip } from '../components/SpeakerChip';
 import { ActionItemRow } from '../components/ActionItemRow';
 import { useTheme } from '../contexts/ThemeContext';
 import { COLORS, FONT, RADIUS, BRAND } from '../constants/theme';
-import { useTranscript } from '../data/transcriptSource';
+import { useTranscript, retryTranscript } from '../data/transcriptSource';
 import { RootStackParamList, ActionItem } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TranscriptDetail'>;
 
 export function TranscriptDetailScreen({ route, navigation }: Props) {
   const { transcriptId } = route.params;
-  const { transcript, loading, error, getSpeakerById } = useTranscript(transcriptId);
+  const { transcript, loading, error, getSpeakerById, reload } = useTranscript(transcriptId);
+  const [retrying, setRetrying] = useState(false);
+  const [retryMessage, setRetryMessage] = useState<string | null>(null);
   const { effectiveTheme } = useTheme();
   const palette = COLORS[effectiveTheme];
   const [actionItems, setActionItems] = useState<ActionItem[]>(
@@ -50,6 +53,18 @@ export function TranscriptDetailScreen({ route, navigation }: Props) {
       </GlassBackground>
     );
   }
+
+  const handleRetry = async () => {
+    setRetrying(true);
+    setRetryMessage(null);
+    const result = await retryTranscript(transcript.id);
+    setRetrying(false);
+    if (result.outcome === 'ready' || result.outcome === 'already_ready') {
+      reload();
+    } else {
+      setRetryMessage(result.message);
+    }
+  };
 
   const toggleAction = (id: string) => {
     setActionItems((items) =>
@@ -98,6 +113,41 @@ export function TranscriptDetailScreen({ route, navigation }: Props) {
               </View>
             ))}
           </View>
+
+          {transcript.status === 'failed' && (
+            <GlassCard style={[styles.block, styles.failedCard]}>
+              <View style={styles.aiHeader}>
+                <Ionicons name="alert-circle" size={18} color={palette.error} />
+                <Text style={[styles.aiLabel, { color: palette.error }]}>
+                  Transcript unavailable
+                </Text>
+              </View>
+              <Text style={[styles.failedBody, { color: palette.textSecondary }]}>
+                This call was transcribed by WhatsApp, but the transcript could not be
+                downloaded or verified. WhatsApp keeps transcripts for 7 days after the call.
+              </Text>
+              <Pressable
+                testID="transcript-retry"
+                style={[styles.retryButton, { backgroundColor: BRAND.accent, opacity: retrying ? 0.6 : 1 }]}
+                onPress={handleRetry}
+                disabled={retrying}
+              >
+                {retrying ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <>
+                    <Ionicons name="refresh" size={16} color="#FFF" />
+                    <Text style={styles.retryText}>Retry download</Text>
+                  </>
+                )}
+              </Pressable>
+              {retryMessage && (
+                <Text testID="transcript-retry-message" style={[styles.failedBody, { color: palette.textMuted }]}>
+                  {retryMessage}
+                </Text>
+              )}
+            </GlassCard>
+          )}
 
           {transcript.summary && (
             <>
@@ -196,6 +246,17 @@ const styles = StyleSheet.create({
   tagText: { fontSize: FONT.sm, fontWeight: '600' },
   sectionTitle: { fontSize: FONT.lg, fontWeight: '700', marginTop: 20, marginBottom: 10 },
   block: { marginBottom: 4 },
+  failedCard: { gap: 10 },
+  failedBody: { fontSize: FONT.sm, lineHeight: 20 },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: RADIUS.md,
+  },
+  retryText: { color: '#FFF', fontSize: FONT.base, fontWeight: '700' },
   aiHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
   aiLabel: { fontSize: FONT.sm, fontWeight: '700' },
   summaryText: { fontSize: FONT.base, lineHeight: 24 },

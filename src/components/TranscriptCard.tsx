@@ -20,6 +20,7 @@ const STATUS_CONFIG: Record<
   completed: { label: 'Done', color: '#10B981', icon: 'checkmark-circle' },
   processing: { label: 'Processing', color: '#F59E0B', icon: 'hourglass' },
   live: { label: 'Live', color: '#EF4444', icon: 'radio-button-on' },
+  failed: { label: 'Failed', color: '#EF4444', icon: 'alert-circle' },
 };
 
 interface TranscriptCardProps {

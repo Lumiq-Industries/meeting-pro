@@ -1,4 +1,7 @@
-export type TranscriptStatus = 'completed' | 'processing' | 'live';
+// 'failed': Meta's transcript could not be downloaded or verified. Shown to the
+// customer with a retry, never hidden — a call that silently vanishes is worse
+// than a visible error.
+export type TranscriptStatus = 'completed' | 'processing' | 'live' | 'failed';
 export type TranscriptSource = 'whatsapp_voice' | 'whatsapp_call' | 'meeting' | 'upload';
 
 export interface Speaker {
