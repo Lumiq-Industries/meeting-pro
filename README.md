@@ -1,89 +1,230 @@
-# Meeting Pro — WhatsApp Transcriber
+# Meeting Pro — WhatsApp call transcription
 
-**React Native · Expo SDK 54 · Lumiq Industries**
+**Lumiq Industries** (Infinity Colon & VILATECH) · Expo SDK 54 · React Native 0.81 · Supabase
 
-Turn every WhatsApp voice note and meeting into searchable, actionable transcripts — matching the [Meeting Pro tier on vilatech.co](https://vilatech.co).
+Meeting Pro turns business WhatsApp calls into searchable, speaker-separated transcripts.
 
-> **Lumiq Industries** is the combined entity of **Infinity Colon** and **VILATECH**.
+**This is work in progress, not a working product.** Read *What works* and *What does not* before relying on anything here.
 
-## Features (prototype)
+---
 
-- **Glass morphism UI** with `expo-blur` — adaptive **Liquid Glass** styling on iOS 26+
-- **Home dashboard** — sessions, hours transcribed, plan info, quick actions
-- **Live transcription** — animated waveform, mock real-time speaker lines
-- **Searchable archive** — filters, keyword search, tags
-- **Transcript detail** — AI summary, action items, speaker identification, CRM export
-- **WhatsApp Business connect** — integration flow (mock connected state)
-- **Settings** — Lumiq Industries profile, theme, device/OS display
+## The one fact you must know
 
-## Quick start
+**A phone cannot record a WhatsApp call — not on iOS, not on Android, with no workaround short of rooting or jailbreaking the device.** WhatsApp calls run inside the operating system's calling sandbox, and both platforms deliberately block other apps from capturing that audio.
+
+So the phone records nothing. **Meta does the transcription on its own servers**, through the WhatsApp Business Calling API. When a call ends, Meta sends the transcript to our backend as a webhook — speakers already separated, word timings included. Our backend verifies it and stores it in Supabase. **The app only reads from the database.**
+
+```
+WhatsApp call on a business number
+        │
+Meta Cloud API ── records and transcribes on Meta's servers
+        │  webhook: call_transcription_available
+        ▼
+Supabase Edge Function  supabase/functions/whatsapp-webhook
+        │  verify signature → log → fetch transcript → verify hash → store
+        ▼
+Postgres: calls, transcripts, transcript_segments
+        │
+        ▼
+React Native app ── signs in, reads; never records
+```
+
+Any design that has the phone capture call audio is a dead end. Constraints that follow from Meta's side:
+
+- Only numbers on the WhatsApp **Cloud API** with Calling enabled can do this; the WhatsApp Business *app* cannot.
+- Both parties hear a mandatory announcement that the call is being transcribed. It cannot be turned off.
+- Meta deletes the transcript after **7 days**, and download links expire after **5 minutes**. The backend copies the transcript immediately and keeps it.
+- Language detection covers about 54 languages, including Afrikaans. **Zulu and Xhosa are not supported.**
+
+---
+
+## What works
+
+Each item says what was proven and on which infrastructure. "Local" means a Supabase stack in Docker on a developer machine. "Dev" means the hosted Supabase project `meeting-pro-dev` (Frankfurt).
+
+### Database schema — `supabase/migrations/`
+
+The schema is multi-tenant: every business's data is isolated by RLS (row-level security — the database's own rules deciding who can read which rows). It has ten tables: businesses, members, WhatsApp numbers, webhook log, calls, transcripts, segments, action items, tags and transcript tags.
+
+| Proof | Where |
+|---|---|
+| `tests/01_schema_verification.sql`: tenant isolation, column-level edit rights, webhook deduplication, full-text and typo-tolerant search — **30/30** | Local |
+| Migration applied; trigram index, generated search column and edit-rights split all confirmed from the live catalogue | Dev |
+
+### Anon lock-down — `20260918090000_revoke_anon_privileges.sql`
+
+Without signing in, nothing in the database can be read or written. The migration also stops future tables from reopening that access.
+
+| Proof | Where |
+|---|---|
+| `tests/02_anon_denied.sql`: **10/40 before** the migration, **40/40 after**, on real seeded rows | Local |
+| Not yet applied | Dev — pending |
+
+### Webhook receiver — `supabase/functions/whatsapp-webhook/`
+
+The function:
+
+- answers Meta's subscription challenge;
+- verifies every request's HMAC signature against the raw body, using a constant-time comparison;
+- replies 200 immediately, then does the work;
+- logs every event before interpreting it;
+- absorbs Meta's retries without creating duplicates;
+- routes each event to the right business by phone number;
+- fetches the transcript, verifies its SHA-256 hash, and stores both the raw document and normalised rows.
+
+Requests with a bad signature are logged but never acted on. A transcript that arrives before its call's lifecycle event still lands; the call's direction starts as `unknown` and is filled in later.
+
+| Proof | Where |
+|---|---|
+| 33 offline tests against fixtures based on Meta's documented payloads, no network | Node 20 |
+| Deployed: challenge (200 / 403 / 400); signed ingest wrote the transcript plus 4 segments; an identical retry changed nothing; a forged signature was logged and ignored; replied in ~0.4 s | Dev (Deno) |
+
+**Caveat:** in the dev proof, the transcript was downloaded from a Supabase signed URL standing in for Meta's servers. Downloading from Meta itself, and the Media API fallback, are **unproven** until real Meta credentials exist.
+
+### App — sign-in and real transcript data
+
+- Email and password sign-in gates the whole app.
+- Home's recent list, the Archive and the transcript screen read real rows from Supabase.
+- Setting `EXPO_PUBLIC_DATA_SOURCE=mock` switches back to the old demo data, for side-by-side comparison.
+
+| Proof | Where |
+|---|---|
+| In a real browser: sign-in, then the seeded transcript and its 4 segments rendered; an edit made directly in the database appeared in the app; mock mode made zero network calls | Local |
+| Same check | Dev — pending |
+
+---
+
+## What does not work (yet)
+
+- **No real Meta credentials.** The dev deployment runs on throwaway test secrets. No real WhatsApp call has ever reached this system.
+- **The app is still partly mock.** The dashboard stats, onboarding feature cards and Settings read `src/data/mockData.ts`.
+- **The Live screen is fake.** The record button starts a timer and shows three hard-coded lines. **The WhatsApp Connect screen is fake** too — "Connected" is static text.
+- **No summaries or action items.** Meta returns transcripts only; an LLM pass is needed and not built. Transcript titles are placeholders ("WhatsApp call · +27…") until then.
+- **No voice notes.** They need a separate pipeline (Meta's transcription covers calls only) and none exists.
+- **Failed transcripts are hidden** in the app instead of being shown with a retry. Being fixed.
+- **No sign-out, sign-up or password reset.** Accounts are created by an admin.
+- **One Meta access token for everyone.** The schema is designed for a token per business, stored in Supabase Vault, but the function still reads a single environment variable. This must change before a second business is onboarded.
+- **Call recording is not enabled.** Transcription only.
+- `expo-audio` is installed and the app declares microphone permissions, but nothing uses them.
+
+---
+
+## Setup from a fresh clone
+
+### Prerequisites
+
+- Node 20 and npm
+- [Supabase CLI](https://supabase.com/docs/guides/cli) (tested on 2.105)
+- Docker Desktop — only needed for a local database
+- `psql` — only needed for the SQL tests
 
 ```bash
-cd WhatsAppTranscriber
-
-# Copy app icons from BookSmartFinal (or add your own to assets/)
-# PowerShell:
-Copy-Item ..\BookSmartFinal\assets\* .\assets\
-
 npm install
-npx expo start
+cp .env.example .env
 ```
 
-Scan the QR code with **Expo Go** on your device, or press `i` / `a` for simulator.
+### App environment variables — `.env`
 
-## Project structure
+`.env` is gitignored. Never commit it.
 
-Same pattern as `BookSmartFinal`:
+| Variable | What it is | Where to get it |
+|---|---|---|
+| `EXPO_PUBLIC_SUPABASE_URL` | Your Supabase project's API URL | **Local:** `API_URL` from `supabase status -o env`. **Dev:** Supabase dashboard → project → Project Settings → API |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | The public "anon" key | Same places (`ANON_KEY` locally). It is meant to ship inside the app: the database's rules protect the data, not the secrecy of this key |
+| `EXPO_PUBLIC_DATA_SOURCE` | `supabase` (default) or `mock` | Your choice. Change it **in `.env`** and restart with `npx expo start --clear`. Setting it on the command line does not work in this Expo version |
 
-```
-WhatsAppTranscriber/
-├── App.tsx                 # Expo entry
-├── app.json
-├── src/
-│   ├── App.tsx
-│   ├── components/         # GlassCard, GlassTabBar, etc.
-│   ├── constants/theme.ts
-│   ├── contexts/ThemeContext.tsx
-│   ├── data/mockData.ts
-│   ├── navigation/RootNavigator.tsx
-│   ├── screens/
-│   ├── types/
-│   └── utils/platform.ts   # iOS 26 Liquid Glass detection
+### Option A — local database (no accounts needed)
+
+```bash
+supabase start                 # first run downloads images; applies all migrations
+supabase status -o env         # copy API_URL and ANON_KEY into .env
+npx expo start --web           # or `npx expo start` and scan with Expo Go
 ```
 
-## iOS 26 Liquid Glass
+A fresh local database is empty, so there is nothing to sign in to. Create a user in Supabase Studio (http://127.0.0.1:54323 → Authentication → Add user, with **auto-confirm** ticked). Then run this in Studio's SQL editor:
 
-`src/utils/platform.ts` detects `Platform.OS === 'ios'` and `Platform.Version >= 26`, then applies:
+```sql
+insert into public.businesses (id, name)
+  values ('aaaa1111-0000-4000-8000-000000000001', 'Local Test Co');
+insert into public.business_members (business_id, user_id, role)
+  select 'aaaa1111-0000-4000-8000-000000000001', id, 'member'
+    from auth.users where email = '<the email you just created>';
+```
 
-- Higher blur intensity
-- Specular gradient sheen on glass cards
-- Rounded Liquid Glass corner radii
-- Device label shown in Home & Settings
+The Archive will be empty until transcripts exist. Insert some directly, or run the webhook tests to see the shapes.
 
-On Android and older iOS, standard glass morphism is used.
+### Option B — the shared dev project
 
-## Vilatech.co product alignment
+Ask Panky for access to the **Lumiq Industries** organisation in Supabase. Then:
 
-| Website feature | Prototype screen |
-|-----------------|------------------|
-| Voice note → text | Live · Home quick action |
-| Live WhatsApp call transcription | Live screen |
-| Searchable archive | Archive |
-| Keyword tagging & search | Archive filters + tags |
-| AI summaries & action items | Transcript detail |
-| Speaker identification | Transcript detail segments |
-| WhatsApp delivery | WhatsApp connect + share |
-| CRM export | Transcript detail export card |
-| Meeting Pro plan | Home plan card + Settings |
+```bash
+supabase login
+supabase link --project-ref duurebydckodwznnmwoc
+```
 
-## Next steps (post-prototype)
+Put the dev URL and anon key in `.env`. The dev project is on the free tier and **pauses itself after about a week without use**. If queries fail with "tenant not found", restore it from the dashboard.
 
-1. WhatsApp Business API / Twilio integration
-2. OpenAI Whisper or similar for real transcription
-3. Supabase backend for transcript storage
-4. Web dashboard at `meetingpro.vilatech.co`
-5. EAS build for TestFlight handoff
+### Edge Function secrets
 
-## Company
+These live on Supabase, not in `.env`. Set them with `supabase secrets set --env-file supabase/.env.local`; that file is gitignored.
 
-**Lumiq Industries** — Infinity Colon & VILATECH
+| Secret | What it is | Where to get it |
+|---|---|---|
+| `META_APP_SECRET` | Key used to verify Meta's webhook signatures | Meta app dashboard → App settings → Basic → App secret |
+| `META_VERIFY_TOKEN` | Shared string Meta echoes back when you register the webhook | You make it up; enter the same value in Meta's webhook configuration |
+| `META_ACCESS_TOKEN` | Token for downloading transcripts from Meta | Meta Business Suite → System users → generate a token with WhatsApp Business permissions |
+
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected by Supabase automatically.
+
+Deploy the function with `--no-verify-jwt`. Meta signs its requests itself and never sends a Supabase login token:
+
+```bash
+supabase functions deploy whatsapp-webhook --no-verify-jwt
+```
+
+### Running the tests
+
+```bash
+# Webhook receiver — offline, no Docker, no network (33 tests)
+bash supabase/functions/whatsapp-webhook/run-tests.sh
+
+# Schema — each test runs in a transaction that rolls back, so it is safe
+# against any project
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/01_schema_verification.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/02_anon_denied.sql
+
+# App type-check
+npx tsc --noEmit
+```
+
+After any migration, regenerate the app's database types:
+
+```bash
+supabase gen types typescript --local --schema public > src/lib/database.types.ts
+```
+
+---
+
+## Repository layout
+
+```
+App.tsx                           Expo entry
+src/
+  App.tsx                         providers, sign-in gate, navigator
+  lib/supabase.ts                 the single Supabase client
+  lib/database.types.ts           generated from the schema — do not edit
+  contexts/AuthContext.tsx        session state, sign-in
+  data/transcriptSource.ts        real-or-mock data + database→UI mapping
+  data/mockData.ts                demo data, being retired
+  screens/                        SignIn, Home, Live, Archive, TranscriptDetail, Settings, …
+  components/                     glass UI components
+supabase/
+  migrations/                     schema — never edit an applied migration; add a new one
+  tests/                          SQL verification scripts
+  functions/whatsapp-webhook/     webhook receiver, fixtures, offline tests
+PROJECT_BRIEF.md                  original research brief (2026-08-07), historical
+```
+
+The database and the UI types were designed separately and disagree in places: titles, participant names, speakers, statuses. `src/data/transcriptSource.ts` maps between them and marks each judgment call `MISMATCH`.
+
+On iOS 26+, `src/utils/platform.ts` switches the glass components to Liquid Glass styling. Everywhere else they use standard blur.
