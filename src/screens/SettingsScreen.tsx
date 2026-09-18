@@ -16,6 +16,7 @@ import { GlassBackground } from '../components/GlassBackground';
 import { GlassCard } from '../components/GlassCard';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { COLORS, FONT, RADIUS, BRAND, PLAN_LABELS, ThemePalette } from '../constants/theme';
 import { LAYOUT } from '../constants/layout';
 import { dashboardStats } from '../data/mockData';
@@ -31,6 +32,7 @@ type Props = { navigation: SettingsNav };
 
 export function SettingsScreen({ navigation }: Props) {
   const { effectiveTheme, setTheme } = useTheme();
+  const { session, signOut } = useAuth();
   const palette = COLORS[effectiveTheme];
   const isDark = effectiveTheme === 'dark';
 
@@ -117,6 +119,22 @@ export function SettingsScreen({ navigation }: Props) {
               palette={palette}
               showChevron
             />
+          </GlassCard>
+
+          <Text style={[styles.section, { color: palette.textMuted }]}>ACCOUNT</Text>
+          <GlassCard style={styles.menuCard}>
+            <SettingRow
+              icon="person-circle-outline"
+              label="Signed in as"
+              value={session?.user.email ?? ''}
+              palette={palette}
+            />
+            <Divider palette={palette} />
+            {/* Signing out clears the stored session; the app returns to the
+                sign-in screen on its own via AuthContext. */}
+            <Pressable testID="settings-sign-out" accessibilityRole="button" onPress={signOut}>
+              <SettingRow icon="log-out-outline" label="Sign out" palette={palette} />
+            </Pressable>
           </GlassCard>
 
           <Text style={[styles.section, { color: palette.textMuted }]}>ABOUT</Text>
