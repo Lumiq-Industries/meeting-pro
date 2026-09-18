@@ -13,7 +13,9 @@ import { ScreenHeader, SectionHeader } from '../components/ScreenHeader';
 import { useTheme } from '../contexts/ThemeContext';
 import { COLORS, FONT, RADIUS, BRAND, PLAN_LABELS, ThemePalette } from '../constants/theme';
 import { LAYOUT } from '../constants/layout';
-import { dashboardStats, transcripts, featureHighlights } from '../data/mockData';
+// dashboardStats and featureHighlights have no database equivalent yet.
+import { dashboardStats, featureHighlights } from '../data/mockData';
+import { useTranscripts } from '../data/transcriptSource';
 import { MainTabParamList, RootStackParamList } from '../types';
 import { getDeviceLabel, getGlassVariant, supportsLiquidGlass } from '../utils/platform';
 
@@ -27,6 +29,7 @@ type Props = { navigation: HomeNav };
 export function HomeScreen({ navigation }: Props) {
   const { effectiveTheme } = useTheme();
   const palette = COLORS[effectiveTheme];
+  const { transcripts } = useTranscripts();
   const recent = transcripts.slice(0, 3);
   const variant = getGlassVariant();
 

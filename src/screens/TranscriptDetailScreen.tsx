@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -15,25 +15,37 @@ import { SpeakerChip } from '../components/SpeakerChip';
 import { ActionItemRow } from '../components/ActionItemRow';
 import { useTheme } from '../contexts/ThemeContext';
 import { COLORS, FONT, RADIUS, BRAND } from '../constants/theme';
-import { getTranscriptById, getSpeakerById } from '../data/mockData';
+import { useTranscript } from '../data/transcriptSource';
 import { RootStackParamList, ActionItem } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TranscriptDetail'>;
 
 export function TranscriptDetailScreen({ route, navigation }: Props) {
   const { transcriptId } = route.params;
-  const transcript = getTranscriptById(transcriptId);
+  const { transcript, loading, error, getSpeakerById } = useTranscript(transcriptId);
   const { effectiveTheme } = useTheme();
   const palette = COLORS[effectiveTheme];
   const [actionItems, setActionItems] = useState<ActionItem[]>(
     transcript?.actionItems ?? []
   );
 
+  // The transcript now arrives asynchronously, after the first render has already
+  // run the useState initialiser above with nothing. Sync once it lands.
+  useEffect(() => {
+    setActionItems(transcript?.actionItems ?? []);
+  }, [transcript]);
+
   if (!transcript) {
     return (
       <GlassBackground>
         <SafeAreaView style={styles.safe}>
-          <Text style={{ color: palette.text, padding: 20 }}>Transcript not found.</Text>
+          <Text style={{ color: palette.text, padding: 20 }}>
+            {loading
+              ? 'Loading transcript…'
+              : error
+                ? `Could not load transcript: ${error}`
+                : 'Transcript not found.'}
+          </Text>
         </SafeAreaView>
       </GlassBackground>
     );

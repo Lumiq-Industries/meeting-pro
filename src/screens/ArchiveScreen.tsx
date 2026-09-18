@@ -17,7 +17,7 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { useTheme } from '../contexts/ThemeContext';
 import { COLORS, FONT, RADIUS, BRAND } from '../constants/theme';
 import { LAYOUT } from '../constants/layout';
-import { transcripts } from '../data/mockData';
+import { useTranscripts } from '../data/transcriptSource';
 import { MainTabParamList, RootStackParamList } from '../types';
 
 type ArchiveNav = CompositeNavigationProp<
@@ -34,6 +34,7 @@ export function ArchiveScreen({ navigation }: Props) {
   const palette = COLORS[effectiveTheme];
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('All');
+  const { transcripts, loading, error } = useTranscripts();
 
   const filtered = useMemo(() => {
     let list = [...transcripts];
@@ -58,7 +59,7 @@ export function ArchiveScreen({ navigation }: Props) {
       );
     }
     return list;
-  }, [query, filter]);
+  }, [transcripts, query, filter]);
 
   return (
     <GlassBackground>
@@ -124,7 +125,11 @@ export function ArchiveScreen({ navigation }: Props) {
           {filtered.length === 0 && (
             <View style={styles.empty}>
               <Text style={[styles.emptyText, { color: palette.textMuted }]}>
-                No transcripts match your search.
+                {loading
+                  ? 'Loading transcripts…'
+                  : error
+                    ? `Could not load transcripts: ${error}`
+                    : 'No transcripts match your search.'}
               </Text>
             </View>
           )}
