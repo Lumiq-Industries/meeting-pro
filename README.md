@@ -244,6 +244,26 @@ curl -X POST "https://<project-ref>.supabase.co/functions/v1/summarize-transcrip
 
 Costs land on the Anthropic account that owns the key — see the cost estimate above.
 
+### Demo data
+
+`supabase/seed/demo_khaya.sql` seeds a fictional Johannesburg property business,
+Khaya Property Services, with fourteen WhatsApp calls spread over the last few
+weeks: a plumbing quote, a delivery dispute, a burst geyser, a recruitment
+screen, a supplier negotiation and so on, in South African English with some
+Afrikaans. Thirteen are transcribed; one failed to download, so the failure
+state and its Retry button can be shown.
+
+Every summary, title and action item in it is **pre-written demo content**. No
+model produced any of it — `summary_model` reads `seeded-demo-content` rather
+than naming a model, so nothing in the database pretends otherwise.
+
+```bash
+psql "$DATABASE_URL" -f supabase/seed/demo_khaya.sql
+```
+
+Dates are relative to `now()`, so the demo never looks stale. The demo user is
+created separately through the auth admin API and added to `business_members`.
+
 ### Running the tests
 
 ```bash
