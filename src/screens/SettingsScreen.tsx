@@ -134,22 +134,10 @@ export function SettingsScreen({ navigation }: Props) {
                 showChevron
               />
             </Pressable>
-            <Divider palette={palette} />
-            <SettingRow
-              icon="cloud-outline"
-              label="CRM Export"
-              value="HubSpot"
-              palette={palette}
-              showChevron
-            />
-            <Divider palette={palette} />
-            <SettingRow
-              icon="globe-outline"
-              label="Web Dashboard"
-              value="meetingpro.vilatech.co"
-              palette={palette}
-              showChevron
-            />
+            {/* "CRM Export — HubSpot" and "Web Dashboard —
+                meetingpro.vilatech.co" sat here with chevrons and no handler.
+                Neither exists; a row that does nothing when tapped is worse
+                than no row. */}
           </GlassCard>
 
           <Text style={[styles.section, { color: palette.textMuted }]}>ACCOUNT</Text>

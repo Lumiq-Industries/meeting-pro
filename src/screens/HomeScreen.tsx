@@ -162,16 +162,6 @@ export function HomeScreen({ navigation }: Props) {
             )}
           </View>
 
-          <SectionHeader title="Platform parity" />
-          <View style={styles.platformRow}>
-            {(['Teams', 'Zoom', 'Meet'] as const).map((p) => (
-              <GlassCard key={p} style={styles.platformChip}>
-                <Ionicons name="checkmark-circle" size={16} color={BRAND.whatsapp} />
-                <Text style={[styles.platformText, { color: palette.textSecondary }]}>{p}-style</Text>
-              </GlassCard>
-            ))}
-          </View>
-
           <SectionHeader title="What's included" />
           <View style={styles.listBlock}>
             {FEATURE_HIGHLIGHTS.map((f) => (
@@ -270,9 +260,6 @@ const styles = StyleSheet.create({
   },
   actionLabel: { fontSize: FONT.sm, fontWeight: '600', textAlign: 'center' },
   listBlock: { gap: LAYOUT.cardGap },
-  platformRow: { flexDirection: 'row', gap: 10, marginBottom: LAYOUT.blockGap },
-  platformChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12 },
-  platformText: { fontSize: FONT.xs, fontWeight: '600' },
   featureCard: {},
   featureRow: { flexDirection: 'row', gap: 16, alignItems: 'center' },
   featureIcon: { width: 48, height: 48, borderRadius: RADIUS.sm, alignItems: 'center', justifyContent: 'center' },

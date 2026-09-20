@@ -225,18 +225,9 @@ export function TranscriptDetailScreen({ route, navigation }: Props) {
             </>
           )}
 
-          <GlassCard style={[styles.block, styles.exportCard]}>
-            <Ionicons name="cloud-upload-outline" size={22} color={BRAND.accent} />
-            <View style={styles.exportText}>
-              <Text style={[styles.exportTitle, { color: palette.text }]}>
-                Export to CRM
-              </Text>
-              <Text style={[styles.exportDesc, { color: palette.textSecondary }]}>
-                HubSpot · Salesforce · Custom webhook
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={palette.textMuted} />
-          </GlassCard>
+          {/* An "Export to CRM" card sat here — a chevron, three named
+              integrations, and no handler behind any of them. Nothing exports
+              anywhere yet. */}
 
           <View style={{ height: 40 }} />
         </ScrollView>
@@ -287,13 +278,4 @@ const styles = StyleSheet.create({
   },
   timestamp: { fontSize: FONT.xs, fontVariant: ['tabular-nums'] },
   segmentText: { fontSize: FONT.base, lineHeight: 22 },
-  exportCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    marginTop: 20,
-  },
-  exportText: { flex: 1 },
-  exportTitle: { fontSize: FONT.base, fontWeight: '600' },
-  exportDesc: { fontSize: FONT.sm, marginTop: 2 },
 });
