@@ -58,7 +58,7 @@ Without signing in, nothing in the database can be read or written. The migratio
 | Proof | Where |
 |---|---|
 | `tests/02_anon_denied.sql`: **10/40 before** the migration, **40/40 after**, on real seeded rows | Local |
-| Not yet applied | Dev — pending |
+| Applied. Same test: **10/40 before, 40/40 after**. The original 30-check schema test still passes **30/30**, and `anon` now holds **zero** privileges on every table | Dev |
 
 ### Webhook receiver — `supabase/functions/whatsapp-webhook/`
 
@@ -70,27 +70,39 @@ The function:
 - logs every event before interpreting it;
 - absorbs Meta's retries without creating duplicates;
 - routes each event to the right business by phone number;
-- fetches the transcript, verifies its SHA-256 hash, and stores both the raw document and normalised rows.
+- fetches the transcript, verifies its SHA-256 hash, and stores both the raw document and normalised rows;
+- records a **failed** transcript when the download or verification fails, so the call never silently disappears. A failed row holds only Meta's references, never unverified content, and a transcript that is already stored is never overwritten by a later failure.
 
 Requests with a bad signature are logged but never acted on. A transcript that arrives before its call's lifecycle event still lands; the call's direction starts as `unknown` and is filled in later.
 
 | Proof | Where |
 |---|---|
-| 33 offline tests against fixtures based on Meta's documented payloads, no network | Node 20 |
+| 42 offline tests against fixtures based on Meta's documented payloads, no network | Node 20 |
 | Deployed: challenge (200 / 403 / 400); signed ingest wrote the transcript plus 4 segments; an identical retry changed nothing; a forged signature was logged and ignored; replied in ~0.4 s | Dev (Deno) |
 
-**Caveat:** in the dev proof, the transcript was downloaded from a Supabase signed URL standing in for Meta's servers. Downloading from Meta itself, and the Media API fallback, are **unproven** until real Meta credentials exist.
+**Caveat:** in the dev proof, the transcript was downloaded from a Supabase signed URL standing in for Meta's servers. A *successful* download from Meta itself is **unproven** until real Meta credentials exist. The *failure* path is proven against Meta: with placeholder credentials Meta's Media API answered HTTP 401 and a failed transcript was recorded.
+
+### Retry — `supabase/functions/retry-transcript/`
+
+When a transcript failed, the app can ask the server to fetch it again. The function checks, using the caller's own credentials so RLS decides, that they may see the transcript before anything runs with elevated access; a transcript they cannot see is reported as not found rather than forbidden. It always goes through Meta's Media API, since the link in the webhook expired after five minutes, and refuses without contacting Meta when the transcript is already stored, when there is no hash to verify against, or when it is past Meta's 7-day retention.
+
+| Proof | Where |
+|---|---|
+| 9 offline tests: success, refusal without credentials, expiry, hash missing, caller not permitted, already stored | Node 20 |
+| Deployed. Retry from the app returned HTTP 200 and a plain failure message; the transcript stayed failed and the stored good transcript was untouched | Dev (Deno) |
 
 ### App — sign-in and real transcript data
 
 - Email and password sign-in gates the whole app.
 - Home's recent list, the Archive and the transcript screen read real rows from Supabase.
+- Failed transcripts are shown with a red badge, an explanation and a **Retry download** button — never hidden.
+- Settings shows the signed-in email and a sign-out button.
 - Setting `EXPO_PUBLIC_DATA_SOURCE=mock` switches back to the old demo data, for side-by-side comparison.
 
 | Proof | Where |
 |---|---|
 | In a real browser: sign-in, then the seeded transcript and its 4 segments rendered; an edit made directly in the database appeared in the app; mock mode made zero network calls | Local |
-| Same check | Dev — pending |
+| In a real browser: sign-in; both transcripts listed, the failed one visible with its badge; 4 segments rendered; Retry returned a plain failure message without crashing; sign-out cleared the session and returned to the sign-in screen | Dev |
 
 ---
 
@@ -101,8 +113,7 @@ Requests with a bad signature are logged but never acted on. A transcript that a
 - **The Live screen is fake.** The record button starts a timer and shows three hard-coded lines. **The WhatsApp Connect screen is fake** too — "Connected" is static text.
 - **No summaries or action items.** Meta returns transcripts only; an LLM pass is needed and not built. Transcript titles are placeholders ("WhatsApp call · +27…") until then.
 - **No voice notes.** They need a separate pipeline (Meta's transcription covers calls only) and none exists.
-- **Failed transcripts are hidden** in the app instead of being shown with a retry. Being fixed.
-- **No sign-out, sign-up or password reset.** Accounts are created by an admin.
+- **No sign-up or password reset.** Accounts are created by an admin. Signing out works.
 - **One Meta access token for everyone.** The schema is designed for a token per business, stored in Supabase Vault, but the function still reads a single environment variable. This must change before a second business is onboarded.
 - **Call recording is not enabled.** Transcription only.
 - `expo-audio` is installed and the app declares microphone permissions, but nothing uses them.
@@ -176,16 +187,17 @@ These live on Supabase, not in `.env`. Set them with `supabase secrets set --env
 
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected by Supabase automatically.
 
-Deploy the function with `--no-verify-jwt`. Meta signs its requests itself and never sends a Supabase login token:
+Deploy the webhook with `--no-verify-jwt`: Meta signs its requests itself and never sends a Supabase login token. The retry function is the opposite — it is called by a signed-in user, so it keeps the default JWT check:
 
 ```bash
 supabase functions deploy whatsapp-webhook --no-verify-jwt
+supabase functions deploy retry-transcript
 ```
 
 ### Running the tests
 
 ```bash
-# Webhook receiver — offline, no Docker, no network (33 tests)
+# Webhook receiver and retry — offline, no Docker, no network (42 tests)
 bash supabase/functions/whatsapp-webhook/run-tests.sh
 
 # Schema — each test runs in a transaction that rolls back, so it is safe
@@ -222,9 +234,11 @@ supabase/
   migrations/                     schema — never edit an applied migration; add a new one
   tests/                          SQL verification scripts
   functions/whatsapp-webhook/     webhook receiver, fixtures, offline tests
+  functions/retry-transcript/     re-downloads a failed transcript, for a signed-in user
+  functions/_shared/              code shared between functions
 PROJECT_BRIEF.md                  original research brief (2026-08-07), historical
 ```
 
-The database and the UI types were designed separately and disagree in places: titles, participant names, speakers, statuses. `src/data/transcriptSource.ts` maps between them and marks each judgment call `MISMATCH`.
+The database and the UI types were designed separately and disagree in places: titles, participant names, speakers. `src/data/transcriptSource.ts` maps between them and marks each judgment call `MISMATCH`.
 
 On iOS 26+, `src/utils/platform.ts` switches the glass components to Liquid Glass styling. Everywhere else they use standard blur.
