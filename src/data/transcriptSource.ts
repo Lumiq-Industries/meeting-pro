@@ -325,6 +325,89 @@ export function useTranscript(id: string): DetailState {
 }
 
 // ---------------------------------------------------------------------------
+// Search
+// ---------------------------------------------------------------------------
+
+export interface SearchState {
+  /** Ids that matched, or null when there is no query and everything shows. */
+  matchIds: Set<string> | null;
+  searching: boolean;
+  error: string | null;
+}
+
+/**
+ * Search in the database, not in the list already on screen.
+ *
+ * search_transcript_ids combines full-text over the generated search column,
+ * substring matching through the trigram index, and fuzzy word matching, so a
+ * word inside a transcript, part of a word, or a typo all find the call. It
+ * runs as the caller, so RLS scopes it to this business.
+ */
+export function useTranscriptSearch(query: string): SearchState {
+  const [matchIds, setMatchIds] = useState<Set<string> | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (DATA_SOURCE === 'mock' || trimmed === '') {
+      setMatchIds(null);
+      setSearching(false);
+      setError(null);
+      return;
+    }
+    let cancelled = false;
+    setSearching(true);
+    // Typing is faster than the round trip; wait for a pause.
+    const timer = setTimeout(() => {
+      supabase
+        .rpc('search_transcript_ids', { p_query: trimmed })
+        .then(({ data, error: err }) => {
+          if (cancelled) return;
+          if (err) {
+            setError(err.message);
+            setMatchIds(new Set());
+          } else {
+            setError(null);
+            setMatchIds(new Set(((data ?? []) as { id: string }[]).map((row) => row.id)));
+          }
+          setSearching(false);
+        });
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  return { matchIds, searching, error };
+}
+
+// ---------------------------------------------------------------------------
+// Action items
+// ---------------------------------------------------------------------------
+
+/**
+ * Tick or untick an action item, and make it stick.
+ *
+ * The checkbox used to change local state only, so it looked like it worked and
+ * then forgot. `authenticated` holds UPDATE on action_items and the RLS policy
+ * scopes it to the user's own business.
+ */
+export async function setActionItemDone(
+  actionItemId: string,
+  done: boolean
+): Promise<{ error: string | null }> {
+  if (DATA_SOURCE === 'mock') return { error: null };
+  const { error } = await supabase
+    .from('action_items')
+    .update({ status: done ? 'done' : 'open' })
+    .eq('id', actionItemId);
+  return { error: error ? error.message : null };
+}
+
+// ---------------------------------------------------------------------------
 // Retry
 // ---------------------------------------------------------------------------
 

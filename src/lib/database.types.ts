@@ -545,6 +545,12 @@ export type Database = {
       }
       is_business_admin: { Args: { p_business_id: string }; Returns: boolean }
       is_business_member: { Args: { p_business_id: string }; Returns: boolean }
+      search_transcript_ids: {
+        Args: { p_query: string }
+        Returns: {
+          id: string
+        }[]
+      }
     }
     Enums: {
       action_item_status: "open" | "done" | "cancelled"

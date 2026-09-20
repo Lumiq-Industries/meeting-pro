@@ -16,7 +16,7 @@ import { SpeakerChip } from '../components/SpeakerChip';
 import { ActionItemRow } from '../components/ActionItemRow';
 import { useTheme } from '../contexts/ThemeContext';
 import { COLORS, FONT, RADIUS, BRAND } from '../constants/theme';
-import { useTranscript, retryTranscript } from '../data/transcriptSource';
+import { useTranscript, retryTranscript, setActionItemDone } from '../data/transcriptSource';
 import { RootStackParamList, ActionItem } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TranscriptDetail'>;
@@ -66,12 +66,21 @@ export function TranscriptDetailScreen({ route, navigation }: Props) {
     }
   };
 
-  const toggleAction = (id: string) => {
+  // Tick the box straight away so it feels immediate, then save. If the save
+  // fails, put it back — better than showing a tick that was never stored.
+  const toggleAction = async (id: string) => {
+    const current = actionItems.find((item) => item.id === id);
+    if (!current) return;
+    const next = !current.completed;
     setActionItems((items) =>
-      items.map((item) =>
-        item.id === id ? { ...item, completed: !item.completed } : item
-      )
+      items.map((item) => (item.id === id ? { ...item, completed: next } : item))
     );
+    const { error: saveError } = await setActionItemDone(id, next);
+    if (saveError) {
+      setActionItems((items) =>
+        items.map((item) => (item.id === id ? { ...item, completed: !next } : item))
+      );
+    }
   };
 
   const date = new Date(transcript.date).toLocaleDateString('en-ZA', {

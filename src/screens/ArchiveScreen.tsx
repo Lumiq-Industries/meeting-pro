@@ -17,7 +17,7 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { useTheme } from '../contexts/ThemeContext';
 import { COLORS, FONT, RADIUS, BRAND } from '../constants/theme';
 import { LAYOUT } from '../constants/layout';
-import { useTranscripts } from '../data/transcriptSource';
+import { useTranscripts, useTranscriptSearch } from '../data/transcriptSource';
 import { MainTabParamList, RootStackParamList } from '../types';
 
 type ArchiveNav = CompositeNavigationProp<
@@ -27,11 +27,11 @@ type ArchiveNav = CompositeNavigationProp<
 
 type Props = { navigation: ArchiveNav };
 
-// 'Meetings' and 'Live' were removed: nothing can ever match them. Every
-// transcript comes from a WhatsApp call, and there is no live status — Meta
-// sends a transcript only once a call has ended. A filter that always returns
-// nothing implies a feature that does not exist.
-const FILTERS = ['All', 'WhatsApp', 'Tagged'] as const;
+// Each filter must be able to change what you see. 'WhatsApp' went the same
+// way as 'Meetings' and 'Live': every transcript comes from a WhatsApp call, so
+// it selected everything and told you nothing. 'Needs attention' replaces it —
+// transcripts whose download failed and can be retried.
+const FILTERS = ['All', 'Tagged', 'Needs attention'] as const;
 
 export function ArchiveScreen({ navigation }: Props) {
   const { effectiveTheme } = useTheme();
@@ -39,27 +39,26 @@ export function ArchiveScreen({ navigation }: Props) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('All');
   const { transcripts, loading, error } = useTranscripts();
+  // The search runs in the database; this is the set of ids it matched.
+  const { matchIds, searching, error: searchError } = useTranscriptSearch(query);
 
   const filtered = useMemo(() => {
     let list = [...transcripts];
-    if (filter === 'WhatsApp') {
-      list = list.filter(
-        (t) => t.source === 'whatsapp_call' || t.source === 'whatsapp_voice'
-      );
-    } else if (filter === 'Tagged') {
+    if (filter === 'Tagged') {
       list = list.filter((t) => t.tags.length > 0);
+    } else if (filter === 'Needs attention') {
+      list = list.filter((t) => t.status === 'failed');
     }
-    if (query.trim()) {
-      const q = query.toLowerCase();
+    if (matchIds !== null) {
+      // Tags live in another table and are not part of the database search, so
+      // a tag match is added here rather than being lost.
+      const q = query.trim().toLowerCase();
       list = list.filter(
-        (t) =>
-          t.title.toLowerCase().includes(q) ||
-          t.tags.some((tag) => tag.toLowerCase().includes(q)) ||
-          t.summary?.toLowerCase().includes(q)
+        (t) => matchIds.has(t.id) || t.tags.some((tag) => tag.toLowerCase().includes(q))
       );
     }
     return list;
-  }, [transcripts, query, filter]);
+  }, [transcripts, matchIds, query, filter]);
 
   return (
     <GlassBackground>
@@ -129,9 +128,13 @@ export function ArchiveScreen({ navigation }: Props) {
                   ? 'Loading transcripts…'
                   : error
                     ? `Could not load transcripts: ${error}`
-                    : transcripts.length === 0
-                      ? 'No transcripts yet. They appear here after a call on your WhatsApp Business number.'
-                      : 'No transcripts match your search.'}
+                    : searching
+                      ? 'Searching…'
+                      : searchError
+                        ? `Search failed: ${searchError}`
+                        : transcripts.length === 0
+                          ? 'No transcripts yet. They appear here after a call on your WhatsApp Business number.'
+                          : 'No transcripts match your search.'}
               </Text>
             </View>
           )}

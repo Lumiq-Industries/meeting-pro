@@ -1,66 +1,145 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { CompositeNavigationProp } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { GlassBackground } from '../components/GlassBackground';
 import { GlassCard } from '../components/GlassCard';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useTheme } from '../contexts/ThemeContext';
-import { COLORS, FONT, BRAND } from '../constants/theme';
+import { COLORS, FONT, RADIUS, BRAND, ThemePalette } from '../constants/theme';
 import { LAYOUT } from '../constants/layout';
+import { useCallHistory, formatCallDuration, CallRecord } from '../data/callHistory';
+import { MainTabParamList, RootStackParamList } from '../types';
 
-// TODO(live): rebuild this as a CALL STATUS view, not a recorder.
+// Call history: one row per call on the business's WhatsApp number, newest
+// first, with what happened to its transcript.
 //
-// What was here before: a record button that started a timer and printed three
-// hardcoded lines of invented conversation every 2.8 seconds. It recorded
-// nothing and transcribed nothing. It has been removed because it showed
-// fabricated transcript text that was indistinguishable from real output.
-//
-// Why a recorder can never work here: a phone cannot capture WhatsApp call
-// audio on either iOS or Android — the operating system blocks it. Meta
-// transcribes the call on its own servers and sends the result to our webhook
-// after the call ends. The app is a read-only client.
-//
-// What this screen should become: a live view of calls in progress, driven by
-// the call lifecycle webhooks Meta already sends (`call_created`, `connect`,
-// `terminate`, which land in webhook_events and update the calls table):
-//   - show calls currently connected, with who is on them and for how long;
-//   - after a call ends, show that the transcript is on its way — Meta usually
-//     delivers it within a minute of the call ending;
-//   - link through to the transcript once it lands, or show the failure with
-//     the retry that the transcript screen already has.
-//
-// Realtime updates would come from a Supabase subscription on the calls table.
-// None of that is built yet, so this screen states its position honestly
-// instead of pretending.
+// This is NOT a live view and cannot be. Meta transcribes on its own servers
+// and sends the result only after a call ends, so nothing here updates during a
+// call. TODO(realtime): when a Supabase subscription on the calls table is
+// added, a call that is still connected can appear at the top as it happens —
+// the call lifecycle webhooks already carry that, only the transcript is late.
 
-export function LiveScreen() {
+type CallsNav = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList, 'Live'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
+
+type Props = { navigation: CallsNav };
+
+const STATE_META: Record<
+  CallRecord['transcriptState'],
+  { label: string; icon: keyof typeof Ionicons.glyphMap; tone: 'good' | 'bad' | 'muted' }
+> = {
+  ready: { label: 'Transcribed', icon: 'document-text', tone: 'good' },
+  failed: { label: 'Transcript failed', icon: 'alert-circle', tone: 'bad' },
+  waiting: { label: 'Waiting for transcript', icon: 'hourglass-outline', tone: 'muted' },
+};
+
+function formatWhen(iso: string | null): string {
+  if (!iso) return 'Time unknown';
+  return new Date(iso).toLocaleString('en-ZA', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+export function LiveScreen({ navigation }: Props) {
   const { effectiveTheme } = useTheme();
   const palette = COLORS[effectiveTheme];
+  const { calls, loading, error, reload } = useCallHistory();
 
   return (
     <GlassBackground>
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={loading} onRefresh={reload} tintColor={palette.textMuted} />
+          }
+        >
           <ScreenHeader
             title="Calls"
-            subtitle="Status of calls on your WhatsApp Business number"
+            subtitle="Calls on your WhatsApp Business number, newest first"
           />
 
-          <GlassCard style={styles.card}>
-            <Ionicons name="pulse-outline" size={28} color={BRAND.accent} />
-            <Text style={[styles.title, { color: palette.text }]}>Not available yet</Text>
-            <Text style={[styles.body, { color: palette.textSecondary }]}>
-              This will show recent and in-progress calls on your WhatsApp Business number,
-              and whether their transcripts have arrived.
-            </Text>
-            <Text style={[styles.body, { color: palette.textMuted }]}>
-              Meeting Pro does not record anything on this device, and calls are not
-              transcribed as they happen. WhatsApp transcribes each call on its own servers
-              and sends the transcript only once the call has ended — usually within a
-              minute. Finished transcripts appear in the Archive.
-            </Text>
-          </GlassCard>
+          {calls.map((call) => {
+            const meta = STATE_META[call.transcriptState];
+            const tone =
+              meta.tone === 'good'
+                ? palette.success
+                : meta.tone === 'bad'
+                  ? palette.error
+                  : palette.textMuted;
+            const openable = call.transcriptId !== null;
+            return (
+              <Pressable
+                key={call.id}
+                disabled={!openable}
+                onPress={() =>
+                  call.transcriptId &&
+                  navigation.navigate('TranscriptDetail', { transcriptId: call.transcriptId })
+                }
+              >
+                <GlassCard style={styles.card}>
+                  <View style={styles.row}>
+                    <View style={[styles.iconWrap, { backgroundColor: `${BRAND.whatsapp}1A` }]}>
+                      <Ionicons
+                        name={call.direction === 'business_initiated' ? 'call-outline' : 'call'}
+                        size={18}
+                        color={BRAND.whatsapp}
+                      />
+                    </View>
+                    <View style={styles.textBlock}>
+                      <Text style={[styles.number, { color: palette.text }]} numberOfLines={1}>
+                        {call.counterparty ?? 'Unknown number'}
+                      </Text>
+                      <Text style={[styles.when, { color: palette.textMuted }]} numberOfLines={1}>
+                        {formatWhen(call.startedAt)} · {formatCallDuration(call.durationSeconds)}
+                      </Text>
+                    </View>
+                    {openable && (
+                      <Ionicons name="chevron-forward" size={16} color={palette.textMuted} />
+                    )}
+                  </View>
+
+                  <View style={styles.stateRow}>
+                    <Ionicons name={meta.icon} size={14} color={tone} />
+                    <Text style={[styles.stateText, { color: tone }]} numberOfLines={1}>
+                      {call.transcriptTitle ?? meta.label}
+                    </Text>
+                  </View>
+                </GlassCard>
+              </Pressable>
+            );
+          })}
+
+          {calls.length === 0 && (
+            <GlassCard style={styles.emptyCard}>
+              <Ionicons
+                name={loading ? 'time-outline' : 'call-outline'}
+                size={24}
+                color={palette.textMuted}
+              />
+              <Text style={[styles.emptyTitle, { color: palette.text }]}>
+                {loading ? 'Loading…' : error ? 'Could not load calls' : 'No calls yet'}
+              </Text>
+              <Text style={[styles.emptyBody, { color: palette.textSecondary }]}>
+                {error
+                  ? error
+                  : loading
+                    ? ''
+                    : 'Calls on your WhatsApp Business number appear here once they end. Nothing is recorded on this device.'}
+              </Text>
+            </GlassCard>
+          )}
 
           <View style={{ height: LAYOUT.tabBarClearance }} />
         </ScrollView>
@@ -75,7 +154,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: LAYOUT.screenPaddingH,
     paddingTop: LAYOUT.screenPaddingTop,
   },
-  card: { alignItems: 'center', gap: 12, paddingVertical: 28 },
-  title: { fontSize: FONT.lg, fontWeight: '700' },
-  body: { fontSize: FONT.sm, textAlign: 'center', lineHeight: 20 },
+  card: { gap: 10, marginBottom: LAYOUT.itemGap },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textBlock: { flex: 1 },
+  number: { fontSize: FONT.base, fontWeight: '600' },
+  when: { fontSize: FONT.xs, marginTop: 2 },
+  stateRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  stateText: { flex: 1, fontSize: FONT.sm, fontWeight: '500' },
+  emptyCard: { alignItems: 'center', gap: 8, paddingVertical: 28 },
+  emptyTitle: { fontSize: FONT.base, fontWeight: '700' },
+  emptyBody: { fontSize: FONT.sm, textAlign: 'center', lineHeight: 20 },
 });
