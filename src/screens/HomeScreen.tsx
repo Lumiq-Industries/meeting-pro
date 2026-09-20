@@ -112,23 +112,6 @@ export function HomeScreen({ navigation }: Props) {
             />
           </View>
 
-          <GlassCard style={styles.planCard}>
-            <View style={styles.planHeader}>
-              <View style={styles.planTextBlock}>
-                <Text style={[styles.planLabel, { color: palette.textMuted }]}>Current plan</Text>
-                {/* TODO(plan): nothing stores a subscription tier — no table,
-                    column or billing integration. Showing a tier here would be
-                    invented. Restore a real value once billing exists. */}
-                <Text style={[styles.planName, { color: palette.text }]}>Plan not set</Text>
-              </View>
-              <View style={[styles.planBadge, { backgroundColor: `${BRAND.gold}33` }]}>
-                <Text style={[styles.planBadgeText, { color: BRAND.gold }]}>Popular</Text>
-              </View>
-            </View>
-            <Text style={[styles.planDesc, { color: palette.textSecondary }]}>
-              Live & recorded transcription · AI summaries · Speaker ID · WhatsApp delivery · CRM export
-            </Text>
-          </GlassCard>
 
           <SectionHeader title="Quick actions" />
           <View style={styles.actionsRow}>
@@ -267,14 +250,6 @@ const styles = StyleSheet.create({
   statCard: { flex: 1, alignItems: 'center', gap: 6, paddingVertical: 18 },
   statValue: { fontSize: FONT.xl, fontWeight: '800' },
   statLabel: { fontSize: FONT.xs, fontWeight: '500' },
-  planCard: { marginBottom: LAYOUT.blockGap },
-  planHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
-  planTextBlock: { flex: 1 },
-  planLabel: { fontSize: FONT.sm, fontWeight: '500' },
-  planName: { fontSize: FONT.xl, fontWeight: '800', marginTop: 4 },
-  planBadge: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: RADIUS.full },
-  planBadgeText: { fontSize: FONT.xs, fontWeight: '700' },
-  planDesc: { fontSize: FONT.sm, lineHeight: 22, marginTop: 14 },
   actionsRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: LAYOUT.blockGap },
   actionItem: { alignItems: 'center', gap: 8, flex: 1 },
   actionCard: { borderRadius: RADIUS.lg },

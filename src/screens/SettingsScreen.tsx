@@ -17,6 +17,7 @@ import { GlassCard } from '../components/GlassCard';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useBusinessProfile, formatPhoneNumber } from '../data/businessProfile';
 import { COLORS, FONT, RADIUS, BRAND, ThemePalette } from '../constants/theme';
 import { LAYOUT } from '../constants/layout';
 import { MainTabParamList, RootStackParamList } from '../types';
@@ -32,6 +33,7 @@ type Props = { navigation: SettingsNav };
 export function SettingsScreen({ navigation }: Props) {
   const { effectiveTheme, setTheme } = useTheme();
   const { session, signOut } = useAuth();
+  const profile = useBusinessProfile();
   const palette = COLORS[effectiveTheme];
   const isDark = effectiveTheme === 'dark';
 
@@ -39,22 +41,52 @@ export function SettingsScreen({ navigation }: Props) {
     <GlassBackground>
       <SafeAreaView style={styles.safe} edges={['top']}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <ScreenHeader title="Settings" subtitle="Lumiq Industries" />
+          <ScreenHeader title="Settings" subtitle={profile.businessName ?? ''} />
 
           <GlassCard style={styles.profileCard}>
             <View style={[styles.avatar, { backgroundColor: `${BRAND.accent}33` }]}>
               <Text style={styles.avatarText}>LI</Text>
             </View>
             <View style={styles.profileInfo}>
-              <Text style={[styles.orgName, { color: palette.text }]}>Lumiq Industries</Text>
+              <Text style={[styles.orgName, { color: palette.text }]}>
+                {profile.businessName ?? (profile.loading ? 'Loading…' : 'Business')}
+              </Text>
               <Text style={[styles.orgSub, { color: palette.textSecondary }]}>
-                {'Plan not set'}
+                {profile.number
+                  ? formatPhoneNumber(profile.number.displayPhoneNumber)
+                  : profile.loading
+                    ? ''
+                    : 'No WhatsApp number connected'}
               </Text>
             </View>
-            <View style={[styles.connectedBadge, { backgroundColor: `${BRAND.whatsapp}22` }]}>
-              <Ionicons name="logo-whatsapp" size={14} color={BRAND.whatsapp} />
-              <Text style={[styles.connectedText, { color: BRAND.whatsapp }]}>Connected</Text>
-            </View>
+            {/* The badge states the real connection status. It used to read
+                "Connected" for everyone, whatever the account actually had. */}
+            {!profile.loading && (
+              <View
+                style={[
+                  styles.connectedBadge,
+                  {
+                    backgroundColor: profile.connected
+                      ? `${BRAND.whatsapp}22`
+                      : `${palette.textMuted}22`,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="logo-whatsapp"
+                  size={14}
+                  color={profile.connected ? BRAND.whatsapp : palette.textMuted}
+                />
+                <Text
+                  style={[
+                    styles.connectedText,
+                    { color: profile.connected ? BRAND.whatsapp : palette.textMuted },
+                  ]}
+                >
+                  {profile.connected ? 'Connected' : 'Not connected'}
+                </Text>
+              </View>
+            )}
           </GlassCard>
 
           <Text style={[styles.section, { color: palette.textMuted }]}>APPEARANCE</Text>
@@ -97,7 +129,7 @@ export function SettingsScreen({ navigation }: Props) {
               <SettingRow
                 icon="logo-whatsapp"
                 label="WhatsApp Business"
-                value="Connected"
+                value={profile.connected ? 'Connected' : 'Not connected'}
                 palette={palette}
                 showChevron
               />
