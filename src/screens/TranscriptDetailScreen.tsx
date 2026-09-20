@@ -149,18 +149,36 @@ export function TranscriptDetailScreen({ route, navigation }: Props) {
             </GlassCard>
           )}
 
-          {transcript.summary && (
+          {/* The section is always shown, and says where things stand. Hiding it
+              left the reader unsure whether a summary was missing, pending or
+              broken; an empty card would have implied failure. */}
+          {transcript.status !== 'failed' && (
             <>
               <Text style={[styles.sectionTitle, { color: palette.text }]}>
                 AI Summary
               </Text>
               <GlassCard style={styles.block}>
                 <View style={styles.aiHeader}>
-                  <Ionicons name="bulb" size={18} color={BRAND.gold} />
-                  <Text style={[styles.aiLabel, { color: BRAND.gold }]}>Meeting Pro AI</Text>
+                  <Ionicons
+                    name={transcript.summary ? 'bulb' : 'bulb-outline'}
+                    size={18}
+                    color={transcript.summary ? BRAND.gold : palette.textMuted}
+                  />
+                  <Text
+                    style={[
+                      styles.aiLabel,
+                      { color: transcript.summary ? BRAND.gold : palette.textMuted },
+                    ]}
+                  >
+                    {transcript.summary ? 'Meeting Pro AI' : 'Not available yet'}
+                  </Text>
                 </View>
                 <Text style={[styles.summaryText, { color: palette.textSecondary }]}>
-                  {transcript.summary}
+                  {transcript.summary
+                    ? transcript.summary
+                    : transcript.summaryStatus === 'failed'
+                      ? 'A summary could not be generated for this call. The transcript below is complete and unaffected.'
+                      : 'Automatic summaries are not switched on for this account yet. The full transcript below is complete.'}
                 </Text>
               </GlassCard>
             </>

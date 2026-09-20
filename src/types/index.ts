@@ -24,6 +24,12 @@ export interface TranscriptSegment {
   timestamp: string;
 }
 
+// Where the summary pass has got to. 'pending' means it has not run — which is
+// the case for every transcript until ANTHROPIC_API_KEY is set on the Supabase
+// project. Distinguishing it from 'failed' is what lets the app say "not yet"
+// without implying something went wrong.
+export type SummaryStatus = 'pending' | 'ready' | 'failed';
+
 export interface Transcript {
   id: string;
   title: string;
@@ -34,6 +40,7 @@ export interface Transcript {
   participants: string[];
   tags: string[];
   summary?: string;
+  summaryStatus?: SummaryStatus;
   actionItems?: ActionItem[];
   segments?: TranscriptSegment[];
   keywordMatches?: number;

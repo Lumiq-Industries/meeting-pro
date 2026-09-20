@@ -31,6 +31,7 @@ export const DATA_SOURCE: DataSource =
 
 type DbTranscriptStatus = Database['public']['Enums']['transcript_status'];
 type DbActionStatus = Database['public']['Enums']['action_item_status'];
+type DbSummaryStatus = Database['public']['Enums']['summary_status'];
 
 // ---------------------------------------------------------------------------
 // Queries
@@ -40,14 +41,14 @@ type DbActionStatus = Database['public']['Enums']['action_item_status'];
 // adding one would only hide a policy bug rather than reveal it.
 
 const LIST_SELECT = `
-  id, status, created_at, duration_seconds, summary, title,
+  id, status, created_at, duration_seconds, summary, title, summary_status,
   calls ( started_at, duration_seconds, counterparty_phone, direction ),
   transcript_tags ( tags ( name ) ),
   action_items ( id, text, owner, status )
 ` as const;
 
 const DETAIL_SELECT = `
-  id, status, created_at, duration_seconds, summary, title,
+  id, status, created_at, duration_seconds, summary, title, summary_status,
   calls ( started_at, duration_seconds, counterparty_phone, direction ),
   transcript_tags ( tags ( name ) ),
   action_items ( id, text, owner, status ),
@@ -68,6 +69,7 @@ interface DbRow {
   created_at: string;
   duration_seconds: number | null;
   summary: string | null;
+  summary_status: DbSummaryStatus;
   calls: DbCall | null;
   transcript_tags: { tags: { name: string } | null }[];
   action_items: { id: string; text: string; owner: string | null; status: DbActionStatus }[];
@@ -197,6 +199,10 @@ function toTranscript(row: DbRow): { transcript: Transcript; speakers: Speaker[]
         .map((tt) => tt.tags?.name)
         .filter((n): n is string => Boolean(n)),
       summary: row.summary ?? undefined,
+      // 'ready' with no text would be a contradiction; treat it as not run.
+      summaryStatus: row.summary_status === 'ready' && !row.summary
+        ? 'pending'
+        : row.summary_status,
       actionItems: mapActionItems(row.action_items),
       segments: mapped?.segments,
       // MISMATCH: keywordMatches is a search-time figure; nothing stores it.

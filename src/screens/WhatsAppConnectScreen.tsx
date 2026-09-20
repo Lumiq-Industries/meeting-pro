@@ -25,7 +25,7 @@ export function WhatsAppConnectScreen({ navigation }: Props) {
     ? [
         'Calls on this number are transcribed by WhatsApp after they end',
         'Transcripts arrive here within about a minute, with speakers separated',
-        'Each one gets a summary and action items automatically',
+        'Summaries and action items are coming — not switched on yet',
       ]
     : [
         'A WhatsApp Business number must be registered on the Meta Cloud API with Calling enabled',

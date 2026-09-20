@@ -26,9 +26,11 @@ export const FEATURE_HIGHLIGHTS: FeatureHighlight[] = [
     description: 'Keyword tagging and full-text search across all sessions.',
   },
   {
+    // Built and deployed, but switched off until an Anthropic API key is set on
+    // the Supabase project. Said plainly rather than promised.
     icon: 'bulb',
     title: 'AI Summaries',
-    description: 'Action items and next steps before you leave the room.',
+    description: 'Coming soon — built, but not switched on yet.',
   },
 ];
 
