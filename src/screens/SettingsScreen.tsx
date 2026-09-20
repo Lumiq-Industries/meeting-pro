@@ -17,9 +17,8 @@ import { GlassCard } from '../components/GlassCard';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import { COLORS, FONT, RADIUS, BRAND, PLAN_LABELS, ThemePalette } from '../constants/theme';
+import { COLORS, FONT, RADIUS, BRAND, ThemePalette } from '../constants/theme';
 import { LAYOUT } from '../constants/layout';
-import { dashboardStats } from '../data/mockData';
 import { MainTabParamList, RootStackParamList } from '../types';
 import { getDeviceLabel, supportsLiquidGlass } from '../utils/platform';
 
@@ -49,7 +48,7 @@ export function SettingsScreen({ navigation }: Props) {
             <View style={styles.profileInfo}>
               <Text style={[styles.orgName, { color: palette.text }]}>Lumiq Industries</Text>
               <Text style={[styles.orgSub, { color: palette.textSecondary }]}>
-                {PLAN_LABELS[dashboardStats.plan]}
+                {'Plan not set'}
               </Text>
             </View>
             <View style={[styles.connectedBadge, { backgroundColor: `${BRAND.whatsapp}22` }]}>

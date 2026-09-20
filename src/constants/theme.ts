@@ -78,6 +78,8 @@ export const SPEAKER_COLORS = [
   '#8B5CF6',
 ];
 
+// Unused for now: nothing in the database stores a subscription tier, so no
+// screen can pick a label honestly. Kept for when billing exists.
 export const PLAN_LABELS = {
   voice_call: 'Voice & Call',
   meeting_pro: 'Meeting Pro',

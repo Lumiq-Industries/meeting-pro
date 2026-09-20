@@ -2,10 +2,10 @@
 //
 // Two sources behind one interface, selected by EXPO_PUBLIC_DATA_SOURCE:
 //   supabase (default) — real rows from the database, as the signed-in user
-//   mock               — src/data/mockData.ts, kept for side-by-side comparison
+//   mock               — src/data/demoTranscripts.ts, for side-by-side comparison
 //
-// mockData.ts stays until real data is confirmed to render correctly; flipping
-// the env var and restarting Expo is the comparison.
+// Demo data is never imported by a screen: it reaches the UI only through this
+// module, and only when demo mode is switched on.
 //
 // The database schema and the UI types in src/types were designed separately and
 // do not line up. Neither is reshaped here. The adapter below maps one onto the
@@ -15,7 +15,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
 import { SPEAKER_COLORS } from '../constants/theme';
-import * as mock from './mockData';
+import * as demo from './demoTranscripts';
 import type {
   ActionItem,
   Speaker,
@@ -215,7 +215,7 @@ interface ListState {
 
 export function useTranscripts(): ListState {
   const [transcripts, setTranscripts] = useState<Transcript[]>(
-    DATA_SOURCE === 'mock' ? mock.transcripts : []
+    DATA_SOURCE === 'mock' ? demo.demoTranscripts : []
   );
   const [loading, setLoading] = useState(DATA_SOURCE === 'supabase');
   const [error, setError] = useState<string | null>(null);
@@ -261,7 +261,7 @@ interface DetailState {
 
 export function useTranscript(id: string): DetailState {
   const [transcript, setTranscript] = useState<Transcript | undefined>(
-    DATA_SOURCE === 'mock' ? mock.getTranscriptById(id) : undefined
+    DATA_SOURCE === 'mock' ? demo.getDemoTranscriptById(id) : undefined
   );
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
   const [loading, setLoading] = useState(DATA_SOURCE === 'supabase');
@@ -305,7 +305,7 @@ export function useTranscript(id: string): DetailState {
   const getSpeakerById = useCallback(
     (speakerId: string) =>
       DATA_SOURCE === 'mock'
-        ? mock.getSpeakerById(speakerId)
+        ? demo.getDemoSpeakerById(speakerId)
         : speakers.find((s) => s.id === speakerId),
     [speakers]
   );

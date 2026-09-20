@@ -11,11 +11,11 @@ import { GlassCard } from '../components/GlassCard';
 import { TranscriptCard } from '../components/TranscriptCard';
 import { ScreenHeader, SectionHeader } from '../components/ScreenHeader';
 import { useTheme } from '../contexts/ThemeContext';
-import { COLORS, FONT, RADIUS, BRAND, PLAN_LABELS, ThemePalette } from '../constants/theme';
+import { COLORS, FONT, RADIUS, BRAND, ThemePalette } from '../constants/theme';
 import { LAYOUT } from '../constants/layout';
-// dashboardStats and featureHighlights have no database equivalent yet.
-import { dashboardStats, featureHighlights } from '../data/mockData';
+import { FEATURE_HIGHLIGHTS, NO_VALUE } from '../constants/content';
 import { useTranscripts } from '../data/transcriptSource';
+import { useDashboardStats, formatHours } from '../data/dashboardStats';
 import { MainTabParamList, RootStackParamList } from '../types';
 import { getDeviceLabel, getGlassVariant, supportsLiquidGlass } from '../utils/platform';
 
@@ -29,7 +29,8 @@ type Props = { navigation: HomeNav };
 export function HomeScreen({ navigation }: Props) {
   const { effectiveTheme } = useTheme();
   const palette = COLORS[effectiveTheme];
-  const { transcripts } = useTranscripts();
+  const { transcripts, loading: transcriptsLoading } = useTranscripts();
+  const stats = useDashboardStats();
   const recent = transcripts.slice(0, 3);
   const variant = getGlassVariant();
 
@@ -91,18 +92,34 @@ export function HomeScreen({ navigation }: Props) {
           </GlassCard>
 
           <View style={styles.statsGrid}>
-            <StatCard label="Sessions" value={String(dashboardStats.totalSessions)} icon="document-text" palette={palette} />
-            <StatCard label="Hours" value={String(dashboardStats.hoursTranscribed)} icon="time" palette={palette} />
-            <StatCard label="Actions" value={String(dashboardStats.actionItemsGenerated)} icon="checkbox" palette={palette} />
+            <StatCard
+              label="Sessions"
+              value={stats.loading || stats.error ? NO_VALUE : String(stats.sessions)}
+              icon="document-text"
+              palette={palette}
+            />
+            <StatCard
+              label="Hours"
+              value={stats.loading || stats.error ? NO_VALUE : formatHours(stats.hours) ?? NO_VALUE}
+              icon="time"
+              palette={palette}
+            />
+            <StatCard
+              label="Actions"
+              value={stats.loading || stats.error ? NO_VALUE : String(stats.actionItemsOpen)}
+              icon="checkbox"
+              palette={palette}
+            />
           </View>
 
           <GlassCard style={styles.planCard}>
             <View style={styles.planHeader}>
               <View style={styles.planTextBlock}>
                 <Text style={[styles.planLabel, { color: palette.textMuted }]}>Current plan</Text>
-                <Text style={[styles.planName, { color: palette.text }]}>
-                  {PLAN_LABELS[dashboardStats.plan]}
-                </Text>
+                {/* TODO(plan): nothing stores a subscription tier — no table,
+                    column or billing integration. Showing a tier here would be
+                    invented. Restore a real value once billing exists. */}
+                <Text style={[styles.planName, { color: palette.text }]}>Plan not set</Text>
               </View>
               <View style={[styles.planBadge, { backgroundColor: `${BRAND.gold}33` }]}>
                 <Text style={[styles.planBadgeText, { color: BRAND.gold }]}>Popular</Text>
@@ -133,6 +150,25 @@ export function HomeScreen({ navigation }: Props) {
                 onPress={() => navigation.navigate('TranscriptDetail', { transcriptId: t.id })}
               />
             ))}
+            {recent.length === 0 && (
+              <GlassCard style={styles.emptyCard}>
+                <Ionicons
+                  name={transcriptsLoading ? 'time-outline' : 'chatbubbles-outline'}
+                  size={24}
+                  color={palette.textMuted}
+                />
+                <Text style={[styles.emptyTitle, { color: palette.text }]}>
+                  {transcriptsLoading ? 'Loading…' : 'No calls yet'}
+                </Text>
+                {!transcriptsLoading && (
+                  <Text style={[styles.emptyBody, { color: palette.textSecondary }]}>
+                    {stats.whatsappConnected
+                      ? 'Transcripts appear here after a call on your WhatsApp Business number. WhatsApp transcribes the call and sends it through once the call ends.'
+                      : 'Connect a WhatsApp Business number to start capturing calls.'}
+                  </Text>
+                )}
+              </GlassCard>
+            )}
           </View>
 
           <SectionHeader title="Platform parity" />
@@ -147,7 +183,7 @@ export function HomeScreen({ navigation }: Props) {
 
           <SectionHeader title="What's included" />
           <View style={styles.listBlock}>
-            {featureHighlights.map((f) => (
+            {FEATURE_HIGHLIGHTS.map((f) => (
               <GlassCard key={f.title} style={styles.featureCard}>
                 <View style={styles.featureRow}>
                   <View style={[styles.featureIcon, { backgroundColor: `${BRAND.accent}18` }]}>
@@ -225,6 +261,9 @@ const styles = StyleSheet.create({
   deviceRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   deviceText: { fontSize: FONT.sm, flex: 1, lineHeight: 18 },
   statsGrid: { flexDirection: 'row', gap: LAYOUT.itemGap, marginBottom: LAYOUT.blockGap },
+  emptyCard: { alignItems: 'center', gap: 8, paddingVertical: 24 },
+  emptyTitle: { fontSize: FONT.base, fontWeight: '700' },
+  emptyBody: { fontSize: FONT.sm, textAlign: 'center', lineHeight: 20 },
   statCard: { flex: 1, alignItems: 'center', gap: 6, paddingVertical: 18 },
   statValue: { fontSize: FONT.xl, fontWeight: '800' },
   statLabel: { fontSize: FONT.xs, fontWeight: '500' },

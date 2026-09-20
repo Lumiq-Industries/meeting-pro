@@ -129,7 +129,9 @@ export function ArchiveScreen({ navigation }: Props) {
                   ? 'Loading transcripts…'
                   : error
                     ? `Could not load transcripts: ${error}`
-                    : 'No transcripts match your search.'}
+                    : transcripts.length === 0
+                      ? 'No transcripts yet. They appear here after a call on your WhatsApp Business number.'
+                      : 'No transcripts match your search.'}
               </Text>
             </View>
           )}

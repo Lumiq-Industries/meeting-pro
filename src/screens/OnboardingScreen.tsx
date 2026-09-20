@@ -12,7 +12,7 @@ import { GlassBackground } from '../components/GlassBackground';
 import { GlassCard } from '../components/GlassCard';
 import { useTheme } from '../contexts/ThemeContext';
 import { COLORS, FONT, RADIUS, BRAND } from '../constants/theme';
-import { featureHighlights } from '../data/mockData';
+import { FEATURE_HIGHLIGHTS } from '../constants/content';
 import { RootStackParamList } from '../types';
 import { getDeviceLabel } from '../utils/platform';
 
@@ -40,7 +40,7 @@ export function OnboardingScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.features}>
-            {featureHighlights.map((f) => (
+            {FEATURE_HIGHLIGHTS.map((f) => (
               <GlassCard key={f.title} style={styles.featureCard}>
                 <Ionicons name={f.icon} size={22} color={BRAND.accent} />
                 <View style={styles.featureText}>
