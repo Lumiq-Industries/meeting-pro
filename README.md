@@ -77,7 +77,7 @@ Requests with a bad signature are logged but never acted on. A transcript that a
 
 | Proof | Where |
 |---|---|
-| 42 offline tests against fixtures based on Meta's documented payloads, no network | Node 20 |
+| 53 offline tests against fixtures based on Meta's documented payloads, no network | Node 20 |
 | Deployed: challenge (200 / 403 / 400); signed ingest wrote the transcript plus 4 segments; an identical retry changed nothing; a forged signature was logged and ignored; replied in ~0.4 s | Dev (Deno) |
 
 **Caveat:** in the dev proof, the transcript was downloaded from a Supabase signed URL standing in for Meta's servers. A *successful* download from Meta itself is **unproven** until real Meta credentials exist. The *failure* path is proven against Meta: with placeholder credentials Meta's Media API answered HTTP 401 and a failed transcript was recorded.
@@ -91,6 +91,27 @@ When a transcript failed, the app can ask the server to fetch it again. The func
 | 9 offline tests: success, refusal without credentials, expiry, hash missing, caller not permitted, already stored | Node 20 |
 | Deployed. Retry from the app returned HTTP 200 and a plain failure message; the transcript stayed failed and the stored good transcript was untouched | Dev (Deno) |
 
+### Summaries — `supabase/functions/summarize-transcript/`
+
+**Built and deployed, but switched OFF.** It needs an Anthropic API key and does nothing until one exists. See *Turning summaries on* below.
+
+Meta returns transcripts, never summaries. This sends the transcript text to **Claude Haiku 4.5** and stores a short title, a summary and any action items. It runs automatically after a transcript lands, and can be re-run by hand.
+
+Two rules shape it:
+
+- **Never a partial summary.** The model must return a single JSON object. The parser is lenient only about an unambiguous markdown fence and strict about everything else. On any failure the transcript keeps its text untouched and `summary_status` becomes `failed` with the reason recorded. The write goes through `apply_transcript_summary()`, which replaces the AI action items and marks the transcript ready in **one transaction**.
+- **Never invent action items.** The prompt states that an empty list is the correct answer for a call with no commitments, and a test asserts that instruction is actually in the prompt.
+
+Re-running is safe: an already-summarised transcript is skipped without a model call, and a forced re-run replaces the AI action items while leaving anything a person added by hand alone.
+
+| Proof | Where |
+|---|---|
+| 11 offline tests: parsing (valid, fenced, eight malformed shapes), idempotency, forced re-run, model error, caller not permitted, no text to summarise | Node 20 |
+| Deployed; guards verified — 401 unauthenticated, 400 on a malformed id, 404 unknown, and 404 when a user from another business asks. The transcript was left untouched by all of it | Dev (Deno) |
+| **The model call itself is UNTESTED** — no API key is set, so Claude has never been called | — |
+
+**Rough cost, estimated not measured:** Haiku 4.5 is $1 per million input tokens and $5 per million output. A 30-minute call works out around **$0.0075** — under a cent — so roughly **$8 per 1,000 calls**. The prompt is about 400 tokens of every request.
+
 ### App — sign-in and real transcript data
 
 - Email and password sign-in gates the whole app.
@@ -99,6 +120,8 @@ When a transcript failed, the app can ask the server to fetch it again. The func
 - Settings shows the signed-in email and a sign-out button.
 - The dashboard figures (sessions, hours, outstanding actions) are counted from real rows. A figure with no source shows an em dash rather than a zero that would read as a fact.
 - A business with no calls gets a proper empty state instead of zeros and blank lists.
+- WhatsApp connection status is read from the database, so it says "Not connected" when no number is registered instead of claiming otherwise.
+- With summaries switched off, the transcript screen says so plainly — the transcript still renders in full, and nothing implies a summary failed.
 - Setting `EXPO_PUBLIC_DATA_SOURCE=mock` switches back to the old demo data, for side-by-side comparison.
 
 | Proof | Where |
@@ -113,10 +136,11 @@ When a transcript failed, the app can ask the server to fetch it again. The func
 
 - **No real Meta credentials.** The dev deployment runs on throwaway test secrets. No real WhatsApp call has ever reached this system.
 - **`mockData.ts` is gone.** No screen shows invented data. Demo transcripts survive only behind `EXPO_PUBLIC_DATA_SOURCE=mock`, which no live path uses.
-- **The WhatsApp Connect screen is still fake** — "Connected" is static text with a made-up number.
+- **Summaries are off.** `summarize-transcript` is deployed but has never called the model: no API key is set. Every transcript reads "not available yet", transcript titles stay placeholders ("WhatsApp call · +27…"), and the outstanding-actions tile reads 0. One command switches it on — see below.
 - **The Live screen does nothing yet.** Its fake recorder has been removed; it now says so plainly. It should become a call status view driven by the call lifecycle webhooks — see the TODO at the top of the file.
-- **No plan or billing.** Nothing stores a subscription tier, so Home and Settings say "Plan not set". Do not add a tier label until something real backs it.
-- **No summaries or action items.** Meta returns transcripts only; an LLM pass is needed and not built. Transcript titles are placeholders ("WhatsApp call · +27…") and the outstanding-actions tile will read 0 until that pass exists.
+- **No plan or billing.** Nothing stores a subscription tier. The plan card has been removed rather than showing an invented one; rebuild it when a real subscription exists.
+- **Voice notes and live call status do not exist.** The "Voice Note → Text" and "Live Call Transcription" cards on Home and Onboarding still describe them as if they work — that copy has not been corrected yet. The Live screen itself says plainly that it is not available.
+- **Connecting a number has no in-app flow.** Registering a WhatsApp Business number is done on Meta's side; the button is disabled and labelled "coming soon".
 - **No voice notes.** They need a separate pipeline (Meta's transcription covers calls only) and none exists.
 - **No sign-up or password reset.** Accounts are created by an admin. Signing out works.
 - **One Meta access token for everyone.** The schema is designed for a token per business, stored in Supabase Vault, but the function still reads a single environment variable. This must change before a second business is onboarded.
@@ -189,6 +213,7 @@ These live on Supabase, not in `.env`. Set them with `supabase secrets set --env
 | `META_APP_SECRET` | Key used to verify Meta's webhook signatures | Meta app dashboard → App settings → Basic → App secret |
 | `META_VERIFY_TOKEN` | Shared string Meta echoes back when you register the webhook | You make it up; enter the same value in Meta's webhook configuration |
 | `META_ACCESS_TOKEN` | Token for downloading transcripts from Meta | Meta Business Suite → System users → generate a token with WhatsApp Business permissions |
+| `ANTHROPIC_API_KEY` | Turns summaries on — see below | console.anthropic.com → API keys |
 
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected by Supabase automatically.
 
@@ -197,12 +222,32 @@ Deploy the webhook with `--no-verify-jwt`: Meta signs its requests itself and ne
 ```bash
 supabase functions deploy whatsapp-webhook --no-verify-jwt
 supabase functions deploy retry-transcript
+supabase functions deploy summarize-transcript
 ```
+
+### Turning summaries on
+
+`summarize-transcript` is deployed and wired up, but it has no API key, so it does nothing. Every transcript shows "summary not available yet" until you run:
+
+```bash
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+```
+
+That is the whole switch — no redeploy, no code change. New transcripts are summarised automatically as they arrive. Existing ones need a re-run:
+
+```bash
+curl -X POST "https://<project-ref>.supabase.co/functions/v1/summarize-transcript" \
+  -H "Authorization: Bearer <service-role-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"transcript_id":"<uuid>","force":true}'
+```
+
+Costs land on the Anthropic account that owns the key — see the cost estimate above.
 
 ### Running the tests
 
 ```bash
-# Webhook receiver and retry — offline, no Docker, no network (42 tests)
+# Webhook, retry and summaries — offline, no Docker, no network (53 tests)
 bash supabase/functions/whatsapp-webhook/run-tests.sh
 
 # Schema — each test runs in a transaction that rolls back, so it is safe
@@ -242,6 +287,7 @@ supabase/
   tests/                          SQL verification scripts
   functions/whatsapp-webhook/     webhook receiver, fixtures, offline tests
   functions/retry-transcript/     re-downloads a failed transcript, for a signed-in user
+  functions/summarize-transcript/ title, summary and action items via Claude (needs a key)
   functions/_shared/              code shared between functions
 PROJECT_BRIEF.md                  original research brief (2026-08-07), historical
 ```
