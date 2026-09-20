@@ -22,10 +22,7 @@
       "minimumOsVersion": "16.0",
       "buildNumber": "1",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "Meeting Pro needs microphone access to transcribe live meetings and WhatsApp calls.",
-        "NSSpeechRecognitionUsageDescription": "Meeting Pro uses speech recognition to convert voice notes and meetings into searchable transcripts.",
         "UIBackgroundModes": [
-          "audio",
           "fetch"
         ]
       }
@@ -37,7 +34,6 @@
       },
       "package": "com.vilatech.meetingpro",
       "permissions": [
-        "RECORD_AUDIO",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"
       ]
@@ -47,8 +43,7 @@
     },
     "plugins": [
       "expo-asset",
-      "expo-splash-screen",
-      "expo-audio"
+      "expo-splash-screen"
     ],
     "extra": {
       "eas": {
