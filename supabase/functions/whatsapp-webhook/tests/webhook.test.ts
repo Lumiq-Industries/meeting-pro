@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import { handleRequest, handleVerification } from "../src/handler.ts";
 import { retryTranscript } from "../src/retry.ts";
+import { summarizeTranscript } from "../src/summary.ts";
 import { timingSafeEqual } from "../src/crypto.ts";
 import { sha256Hex } from "../src/crypto.ts";
 import { buildDedupeKey, canonicalJson } from "../src/dedupe.ts";
@@ -716,4 +717,188 @@ test("retry: without Meta's hash there is nothing to verify against, so it refus
   assert.equal(result.outcome, "not_retryable");
   assert.equal(deps.fetchRecorder.calls.length, 0, "never downloads what it cannot verify");
   assert.equal(db.transcripts[0].full_text, null);
+});
+
+// ---------------------------------------------------------------------------
+// 11. The summary pass
+// ---------------------------------------------------------------------------
+
+const GOOD_REPLY = JSON.stringify({
+  title: 'Quarterly reconciliation call',
+  summary: 'Ntokozo called about the quarterly reconciliation. Thandi had the outstanding invoices to hand and agreed to send a statement.',
+  action_items: [{ text: 'Send the statement to Ntokozo by Friday', owner: 'Thandi' }],
+});
+
+/** A stub model. Returns whatever it is told to, and records what it was asked. */
+function stubModel(reply: string | (() => never)) {
+  const calls: { system: string; user: string }[] = [];
+  const callModel = async (req: { system: string; user: string }) => {
+    calls.push(req);
+    if (typeof reply !== 'string') reply();
+    return { text: reply as string, model: 'claude-haiku-4-5', usage: { input_tokens: 500, output_tokens: 120 } };
+  };
+  return { callModel, calls };
+}
+
+async function transcriptReady() {
+  const { db } = await deliverLifecycleThenTranscript();
+  return { db, transcriptId: db.transcripts[0].id };
+}
+
+test("summary: a good reply is parsed and stored with its action item", async () => {
+  const { db, transcriptId } = await transcriptReady();
+  const model = stubModel(GOOD_REPLY);
+
+  const result = await summarizeTranscript(transcriptId, allow, { db, callModel: model.callModel });
+
+  assert.equal(result.outcome, "ready");
+  assert.equal(db.summaryStatus.get(transcriptId), "ready");
+  assert.equal(db.summaries.get(transcriptId)!.title, "Quarterly reconciliation call");
+  assert.equal(db.summaries.get(transcriptId)!.model, "claude-haiku-4-5");
+  assert.equal(db.aiActionItemsFor(transcriptId).length, 1);
+  assert.equal(db.aiActionItemsFor(transcriptId)[0].owner, "Thandi");
+  // The transcript itself is untouched.
+  assert.match(db.transcripts[0].full_text!, /quarterly reconciliation/);
+});
+
+test("summary: the prompt forbids invented action items and an empty list is accepted", async () => {
+  const { db, transcriptId } = await transcriptReady();
+  const model = stubModel(JSON.stringify({
+    title: 'Courtesy call', summary: 'A short check-in with no commitments made.', action_items: [],
+  }));
+
+  const result = await summarizeTranscript(transcriptId, allow, { db, callModel: model.callModel });
+
+  assert.equal(result.outcome, "ready");
+  assert.equal(db.aiActionItemsFor(transcriptId).length, 0, "an empty list is a valid answer");
+  // The instruction is in the prompt, not just in our hopes.
+  assert.match(model.calls[0].system, /DO NOT INVENT ACTION ITEMS/);
+  // Whitespace-tolerant: the prompt is hard-wrapped, so a plain substring match
+  // would break on where the line happens to end.
+  assert.match(model.calls[0].system.replace(/\s+/g, ' '), /empty\s?array is the correct and expected answer/);
+  assert.match(model.calls[0].system, /No markdown code fences/);
+});
+
+test("summary: running it twice does not duplicate action items", async () => {
+  const { db, transcriptId } = await transcriptReady();
+  const model = stubModel(GOOD_REPLY);
+  const deps = { db, callModel: model.callModel };
+
+  await summarizeTranscript(transcriptId, allow, deps);
+  const second = await summarizeTranscript(transcriptId, allow, deps);
+
+  assert.equal(second.outcome, "already_summarized");
+  assert.equal(model.calls.length, 1, "no needless second model call, and no second bill");
+  assert.equal(db.aiActionItemsFor(transcriptId).length, 1);
+});
+
+test("summary: a forced re-run replaces AI items and leaves hand-made ones alone", async () => {
+  const { db, transcriptId } = await transcriptReady();
+  await summarizeTranscript(transcriptId, allow, { db, callModel: stubModel(GOOD_REPLY).callModel });
+
+  db.actionItems.push({
+    id: 'human-1', transcript_id: transcriptId, business_id: db.transcripts[0].business_id,
+    text: 'Added by a person', owner: null, is_ai_generated: false,
+  });
+
+  const model = stubModel(JSON.stringify({
+    title: 'Reconciliation follow-up', summary: 'Second pass over the same call.',
+    action_items: [{ text: 'Email the statement', owner: null }, { text: 'Chase the invoice', owner: null }],
+  }));
+  const result = await summarizeTranscript(transcriptId, allow, { db, callModel: model.callModel }, { force: true });
+
+  assert.equal(result.outcome, "ready");
+  assert.equal(db.aiActionItemsFor(transcriptId).length, 2, "replaced, not appended");
+  assert.equal(db.actionItems.filter((a) => !a.is_ai_generated).length, 1, "the person's item survived");
+});
+
+test("summary: unparseable output is a failure and stores nothing", async () => {
+  for (const bad of [
+    "Here you go!\n{\"title\": \"x\"}",       // prose around the JSON
+    "{\"title\": \"x\", \"summary\":}",         // broken JSON
+    JSON.stringify({ title: 'x', summary: 'y' }),                       // action_items missing
+    JSON.stringify({ title: '', summary: 'y', action_items: [] }),      // empty title
+    JSON.stringify({ title: 'x', summary: 'y', action_items: 'none' }), // wrong type
+    JSON.stringify({ title: 'x', summary: 'y', action_items: [{ owner: 'Sam' }] }), // item has no text
+    JSON.stringify(['not', 'an', 'object']),
+    "",
+  ]) {
+    const { db, transcriptId } = await transcriptReady();
+    const result = await summarizeTranscript(transcriptId, allow, { db, callModel: stubModel(bad).callModel });
+
+    assert.equal(result.outcome, "failed", `should reject: ${bad.slice(0, 40)}`);
+    assert.equal(db.summaryStatus.get(transcriptId), "failed");
+    assert.equal(db.summaries.get(transcriptId)!.summary, "", "no partial summary written");
+    assert.equal(db.aiActionItemsFor(transcriptId).length, 0, "no action items written");
+    assert.match(db.transcripts[0].full_text!, /quarterly reconciliation/, "the transcript is untouched");
+  }
+});
+
+test("summary: a fenced reply is still read, since the wrapper is unambiguous", async () => {
+  const { db, transcriptId } = await transcriptReady();
+  const model = stubModel("```json\n" + GOOD_REPLY + "\n```");
+  const result = await summarizeTranscript(transcriptId, allow, { db, callModel: model.callModel });
+  assert.equal(result.outcome, "ready");
+  assert.equal(db.aiActionItemsFor(transcriptId).length, 1);
+});
+
+test("summary: a model error is recorded as failed, not swallowed", async () => {
+  const { db, transcriptId } = await transcriptReady();
+  const model = stubModel(() => { throw new Error("529 overloaded"); });
+
+  const result = await summarizeTranscript(transcriptId, allow, { db, callModel: model.callModel });
+
+  assert.equal(result.outcome, "failed");
+  assert.equal(db.summaryStatus.get(transcriptId), "failed");
+  assert.match(db.summaries.get(transcriptId)!.error!, /529/);
+  assert.ok(!/529|overloaded/.test(result.message), "the customer message carries no technical detail");
+});
+
+test("summary: a caller who cannot see the transcript gets not_found and no model call", async () => {
+  const { db, transcriptId } = await transcriptReady();
+  const model = stubModel(GOOD_REPLY);
+  const result = await summarizeTranscript(transcriptId, deny, { db, callModel: model.callModel });
+  assert.equal(result.outcome, "not_found");
+  assert.equal(model.calls.length, 0, "nothing was sent to the model, and nothing was billed");
+  assert.equal(db.summaryStatus.get(transcriptId), undefined);
+});
+
+test("summary: a failed transcript has no text, so it is not sent to the model", async () => {
+  const { db } = await deliverLifecycleThenTranscript({ directUrlExpired: true, mediaApiFails: true });
+  const model = stubModel(GOOD_REPLY);
+  const result = await summarizeTranscript(db.transcripts[0].id, allow, { db, callModel: model.callModel });
+
+  assert.equal(result.outcome, "not_summarizable");
+  assert.equal(model.calls.length, 0);
+  assert.equal(db.summaryStatus.get(db.transcripts[0].id), undefined, "not recorded as a summary failure");
+});
+
+test("summary: the transcript text is what gets sent", async () => {
+  const { db, transcriptId } = await transcriptReady();
+  const model = stubModel(GOOD_REPLY);
+  await summarizeTranscript(transcriptId, allow, { db, callModel: model.callModel });
+  assert.match(model.calls[0].user, /Good morning, Lumiq Industries/);
+  assert.match(model.calls[0].user, /statement through to my email/);
+});
+
+test("a stored transcript triggers summarisation; a failed one does not", async () => {
+  const triggered: string[] = [];
+  const db = freshDb();
+  const deps = { ...makeDeps(db), onTranscriptStored: (id: string) => triggered.push(id) };
+  for (const fixture of ["01-call-connect.json", "03-call-transcription-available.json"]) {
+    const { processing } = await handleRequest(await signedRequest(fixtureText(fixture)), CONFIG, deps);
+    await processing;
+  }
+  assert.deepEqual(triggered, [db.transcripts[0].id], "fired once, for the stored transcript");
+
+  const failing = freshDb();
+  const failDeps = {
+    ...makeDeps(failing, { directUrlExpired: true, mediaApiFails: true }),
+    onTranscriptStored: () => { throw new Error("should not be called"); },
+  };
+  const { processing } = await handleRequest(
+    await signedRequest(fixtureText("03-call-transcription-available.json")), CONFIG, failDeps);
+  const outcome = await processing;
+  assert.equal(outcome?.errors, 1, "the download failure is still reported");
+  assert.equal(failing.transcripts[0].status, "failed");
 });

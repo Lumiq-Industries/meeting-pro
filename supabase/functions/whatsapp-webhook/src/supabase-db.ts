@@ -15,10 +15,11 @@ import type {
   WebhookEventRow,
 } from "./db.ts";
 import { DuplicateEventError } from "./db.ts";
+import type { SummaryActionItem, SummaryDb, SummaryTarget } from "./summary.ts";
 
 const UNIQUE_VIOLATION = "23505";
 
-export class SupabaseDb implements Db {
+export class SupabaseDb implements Db, SummaryDb {
   constructor(private readonly client: any) {}
 
   async findNumberByPhoneNumberId(phoneNumberId: string): Promise<NumberRoute | null> {
@@ -152,5 +153,48 @@ export class SupabaseDb implements Db {
       whatsapp_number_id: data.calls?.whatsapp_number_id ?? null,
       phone_number_id: data.calls?.whatsapp_numbers?.phone_number_id ?? null,
     };
+  }
+
+  async getSummaryTarget(transcriptId: string): Promise<SummaryTarget | null> {
+    const { data, error } = await this.client
+      .from("transcripts")
+      .select("id, business_id, full_text, summary_status")
+      .eq("id", transcriptId)
+      .maybeSingle();
+    if (error) throw new Error(`transcripts summary lookup failed: ${error.message}`);
+    if (!data) return null;
+    return {
+      transcript_id: data.id,
+      business_id: data.business_id,
+      full_text: data.full_text,
+      summary_status: data.summary_status,
+    };
+  }
+
+  async applySummary(
+    transcriptId: string,
+    title: string,
+    summary: string,
+    model: string,
+    actionItems: SummaryActionItem[],
+  ): Promise<void> {
+    // One database function, one transaction: the transcript fields and the
+    // action items land together or not at all.
+    const { error } = await this.client.rpc("apply_transcript_summary", {
+      p_transcript_id: transcriptId,
+      p_title: title,
+      p_summary: summary,
+      p_model: model,
+      p_action_items: actionItems,
+    });
+    if (error) throw new Error(`apply_transcript_summary failed: ${error.message}`);
+  }
+
+  async markSummaryFailed(transcriptId: string, error: string): Promise<void> {
+    const { error: err } = await this.client
+      .from("transcripts")
+      .update({ summary_status: "failed", summary_error: error.slice(0, 500) })
+      .eq("id", transcriptId);
+    if (err) throw new Error(`marking summary failed did not work: ${err.message}`);
   }
 }

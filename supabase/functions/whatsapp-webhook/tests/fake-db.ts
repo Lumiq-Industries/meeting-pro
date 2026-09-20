@@ -7,6 +7,7 @@
 //   transcripts.call_id                unique  -> upsert merges, never duplicates
 //   transcript_segments (transcript_id, segment_index) unique -> replace, not append
 import { DuplicateEventError } from "../src/db.ts";
+import type { SummaryActionItem, SummaryDb, SummaryTarget } from "../src/summary.ts";
 import type {
   CallUpsert,
   Db,
@@ -23,11 +24,20 @@ export interface StoredEvent extends WebhookEventRow {
   error: string | null;
 }
 
-export class FakeDb implements Db {
+export class FakeDb implements Db, SummaryDb {
   readonly events: StoredEvent[] = [];
   readonly calls: (CallUpsert & { id: string })[] = [];
   readonly transcripts: (TranscriptUpsert & { id: string; created_at: string })[] = [];
   readonly segments = new Map<string, SegmentInsert[]>();
+  /** Mirrors public.action_items; is_ai_generated decides what a re-run replaces. */
+  readonly actionItems: {
+    id: string;
+    transcript_id: string;
+    business_id: string;
+    text: string;
+    owner: string | null;
+    is_ai_generated: boolean;
+  }[] = [];
   private readonly numbers = new Map<string, NumberRoute>();
   private seq = 0;
 
@@ -108,6 +118,69 @@ export class FakeDb implements Db {
     }
     this.segments.set(transcriptId, segments);
     return Promise.resolve();
+  }
+
+  getSummaryTarget(transcriptId: string): Promise<SummaryTarget | null> {
+    const t = this.transcripts.find((x) => x.id === transcriptId);
+    if (!t) return Promise.resolve(null);
+    return Promise.resolve({
+      transcript_id: t.id,
+      business_id: t.business_id,
+      full_text: t.full_text,
+      summary_status: this.summaryStatus.get(t.id) ?? "pending",
+    });
+  }
+
+  readonly summaryStatus = new Map<string, string>();
+  readonly summaries = new Map<
+    string,
+    { title: string; summary: string; model: string; error: string | null }
+  >();
+
+  applySummary(
+    transcriptId: string,
+    title: string,
+    summary: string,
+    model: string,
+    actionItems: SummaryActionItem[],
+  ): Promise<void> {
+    const t = this.transcripts.find((x) => x.id === transcriptId);
+    if (!t) return Promise.reject(new Error("transcript not found"));
+    // Mirrors the database function: AI items are replaced, hand-made ones stay.
+    for (let i = this.actionItems.length - 1; i >= 0; i--) {
+      const a = this.actionItems[i];
+      if (a.transcript_id === transcriptId && a.is_ai_generated) this.actionItems.splice(i, 1);
+    }
+    for (const item of actionItems) {
+      if (!item.text.trim()) continue;
+      this.actionItems.push({
+        id: this.id("ai"),
+        transcript_id: transcriptId,
+        business_id: t.business_id,
+        text: item.text.trim(),
+        owner: item.owner,
+        is_ai_generated: true,
+      });
+    }
+    this.summaryStatus.set(transcriptId, "ready");
+    this.summaries.set(transcriptId, { title, summary, model, error: null });
+    return Promise.resolve();
+  }
+
+  markSummaryFailed(transcriptId: string, error: string): Promise<void> {
+    this.summaryStatus.set(transcriptId, "failed");
+    const existing = this.summaries.get(transcriptId);
+    this.summaries.set(transcriptId, {
+      title: existing?.title ?? "",
+      summary: existing?.summary ?? "",
+      model: existing?.model ?? "",
+      error,
+    });
+    return Promise.resolve();
+  }
+
+  aiActionItemsFor(transcriptId: string) {
+    return this.actionItems.filter((a) => a.transcript_id === transcriptId && a.is_ai_generated);
   }
 
   getRetryTarget(transcriptId: string): Promise<RetryTarget | null> {

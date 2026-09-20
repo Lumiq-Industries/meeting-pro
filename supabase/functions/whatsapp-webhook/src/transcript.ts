@@ -10,6 +10,12 @@ export interface TranscriptDeps {
   resolveAccessToken: (businessId: string, whatsappNumberId: string | null) => Promise<string>;
   makeMetaClient?: (token: string) => MetaClient;
   now?: () => Date;
+  /**
+   * Called after a transcript is successfully stored, to kick off
+   * summarisation. Optional and deliberately fire-and-forget: a summary that
+   * fails must never fail the ingest that produced the transcript.
+   */
+  onTranscriptStored?: (transcriptId: string) => void;
 }
 
 export interface StoreTarget {
@@ -109,6 +115,12 @@ export async function fetchAndStoreTranscript(
       language: t.language ?? null,
       used_media_api_fallback: usedFallback,
     });
+    try {
+      deps.onTranscriptStored?.(transcriptId);
+    } catch {
+      // Summarisation is a follow-on step, never a reason to fail the ingest.
+    }
+
     return { segments: segments.length, usedFallback };
   } catch (err) {
     const current = await deps.db.findTranscriptByCallId(target.callRowId);

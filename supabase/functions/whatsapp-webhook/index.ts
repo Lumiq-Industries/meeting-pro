@@ -17,7 +17,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { handleRequest } from "./src/handler.ts";
 import { SupabaseDb } from "./src/supabase-db.ts";
-import { logError } from "./src/log.ts";
+import { logError, logInfo } from "./src/log.ts";
 import { resolveAccessToken } from "../_shared/meta-token.ts";
 
 const appSecret = Deno.env.get("META_APP_SECRET") ?? "";
@@ -39,11 +39,42 @@ const client = createClient(supabaseUrl, serviceRoleKey, {
 });
 const db = new SupabaseDb(client);
 
+/**
+ * Kick off summarisation once a transcript is stored.
+ *
+ * Deliberately fire-and-forget over HTTP rather than in-process: summarising
+ * calls a third-party API that can be slow or down, and Meta's webhook timeout
+ * is a few seconds. A summary that fails must never cost us the transcript.
+ * The service role key authenticates the call; summarize-transcript applies the
+ * same authorisation logic to it as to a user.
+ */
+function triggerSummary(transcriptId: string): void {
+  const url = `${supabaseUrl}/functions/v1/summarize-transcript`;
+  const work = fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${serviceRoleKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ transcript_id: transcriptId }),
+  })
+    .then((res) => logInfo("summary.triggered", { transcript_id: transcriptId, status: res.status }))
+    .catch((err) =>
+      logError("summary.trigger_failed", {
+        transcript_id: transcriptId,
+        error: err instanceof Error ? err.message : String(err),
+      })
+    );
+
+  const runtime = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime;
+  if (runtime?.waitUntil) runtime.waitUntil(work);
+}
+
 Deno.serve(async (req: Request) => {
   const { response, processing } = await handleRequest(
     req,
     { appSecret, verifyToken },
-    { db, resolveAccessToken },
+    { db, resolveAccessToken, onTranscriptStored: triggerSummary },
   );
 
   // Keep the worker alive for the background work without holding the response
