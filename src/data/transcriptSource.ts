@@ -40,14 +40,14 @@ type DbActionStatus = Database['public']['Enums']['action_item_status'];
 // adding one would only hide a policy bug rather than reveal it.
 
 const LIST_SELECT = `
-  id, status, created_at, duration_seconds, summary,
+  id, status, created_at, duration_seconds, summary, title,
   calls ( started_at, duration_seconds, counterparty_phone, direction ),
   transcript_tags ( tags ( name ) ),
   action_items ( id, text, owner, status )
 ` as const;
 
 const DETAIL_SELECT = `
-  id, status, created_at, duration_seconds, summary,
+  id, status, created_at, duration_seconds, summary, title,
   calls ( started_at, duration_seconds, counterparty_phone, direction ),
   transcript_tags ( tags ( name ) ),
   action_items ( id, text, owner, status ),
@@ -63,6 +63,7 @@ interface DbCall {
 
 interface DbRow {
   id: string;
+  title: string | null;
   status: DbTranscriptStatus;
   created_at: string;
   duration_seconds: number | null;
@@ -110,11 +111,15 @@ function formatTimestamp(seconds: number | null): string {
   return `${hh}:${mm}:${ss}`;
 }
 
-// MISMATCH: the UI requires a title; the database has no title column. This is a
-// placeholder derived from the call, not real data. A title needs either a new
-// column (set by a user or the summary pipeline) or an agreed derivation.
-function deriveTitle(call: DbCall | null): string {
-  return call?.counterparty_phone ? `WhatsApp call · +${call.counterparty_phone}` : 'WhatsApp call';
+// The real title is written by the summary pass. Until that has run — or if it
+// failed — fall back to a label derived from the call, which is honest about
+// being a label rather than a description of the conversation.
+function titleFor(row: DbRow): string {
+  const title = row.title?.trim();
+  if (title) return title;
+  return row.calls?.counterparty_phone
+    ? `WhatsApp call · +${row.calls.counterparty_phone}`
+    : 'WhatsApp call';
 }
 
 // MISMATCH: UI participants are display names. The database holds only the
@@ -179,7 +184,7 @@ function toTranscript(row: DbRow): { transcript: Transcript; speakers: Speaker[]
   return {
     transcript: {
       id: row.id,
-      title: deriveTitle(call),
+      title: titleFor(row),
       // MISMATCH: the UI distinguishes four sources; everything in the database
       // arrives through the calls webhook, so it is always a WhatsApp call. Voice
       // notes, meetings and uploads have no ingest path yet.
