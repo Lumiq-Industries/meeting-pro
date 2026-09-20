@@ -12,19 +12,25 @@ import { supabase } from '../lib/supabase';
 import { DATA_SOURCE } from './transcriptSource';
 import { demoTranscripts } from './demoTranscripts';
 
+// Every figure is `| null`, and null means "we do not know" — a query that
+// failed, or one that has not run. It is never rendered as 0.
+//
+// This matters more than it looks: a dashboard that shows 0 sessions because a
+// request failed is stating something false with total confidence. Zero appears
+// only when the database actually answered zero.
 export interface DashboardCounts {
   /** Calls recorded for this business. */
-  sessions: number;
-  /** Total transcribed time, in hours, or null when nothing is transcribed yet. */
+  sessions: number | null;
+  /** Total transcribed time, in hours. Null when nothing is transcribed yet. */
   hours: number | null;
-  /** Action items still open. Zero until the summary pass exists to create any. */
-  actionItemsOpen: number;
+  /** Action items still open. Zero until the summary pass runs to create any. */
+  actionItemsOpen: number | null;
   /** Calls first seen in the last 7 days. Computed but not currently displayed. */
-  callsThisWeek: number;
-  /** Whether an active WhatsApp number is registered for this business. */
-  whatsappConnected: boolean;
+  callsThisWeek: number | null;
+  /** Whether an active WhatsApp number is registered. Null when unknown. */
+  whatsappConnected: boolean | null;
   /** Transcripts whose download failed and are waiting on a retry. */
-  transcriptsFailed: number;
+  transcriptsFailed: number | null;
 }
 
 export interface DashboardState extends DashboardCounts {
@@ -35,13 +41,14 @@ export interface DashboardState extends DashboardCounts {
   reload: () => void;
 }
 
-const EMPTY: DashboardCounts = {
-  sessions: 0,
+/** Nothing known yet. Not "all zero". */
+const UNKNOWN: DashboardCounts = {
+  sessions: null,
   hours: null,
-  actionItemsOpen: 0,
-  callsThisWeek: 0,
-  whatsappConnected: false,
-  transcriptsFailed: 0,
+  actionItemsOpen: null,
+  callsThisWeek: null,
+  whatsappConnected: null,
+  transcriptsFailed: null,
 };
 
 /**
@@ -56,10 +63,15 @@ function countValue(res: { count: number | null; error: { message: string } | nu
   return res.count ?? 0;
 }
 
+/** A settled query: its value, or null if it failed. */
+function valueOf<T>(settled: PromiseSettledResult<T>): T | null {
+  return settled.status === 'fulfilled' ? settled.value : null;
+}
+
 function demoCounts(): DashboardCounts {
   const open = demoTranscripts.flatMap((t) => t.actionItems ?? []).filter((a) => !a.completed);
   return {
-    ...EMPTY,
+    ...UNKNOWN,
     sessions: demoTranscripts.length,
     actionItemsOpen: open.length,
     whatsappConnected: true,
@@ -71,7 +83,7 @@ function demoCounts(): DashboardCounts {
 
 export function useDashboardStats(): DashboardState {
   const [counts, setCounts] = useState<DashboardCounts>(
-    DATA_SOURCE === 'mock' ? demoCounts() : EMPTY
+    DATA_SOURCE === 'mock' ? demoCounts() : UNKNOWN
   );
   const [loading, setLoading] = useState(DATA_SOURCE === 'supabase');
   const [error, setError] = useState<string | null>(null);
@@ -85,10 +97,8 @@ export function useDashboardStats(): DashboardState {
 
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    (async () => {
-      try {
-        const [sessions, actionItemsOpen, callsThisWeek, numbers, transcriptsFailed, durations] =
-          await Promise.all([
+    const runQueries = () =>
+      Promise.allSettled([
             supabase.from('calls').select('id', HEAD_COUNT).then(countValue),
             supabase.from('action_items').select('id', HEAD_COUNT).eq('status', 'open').then(countValue),
             // created_at, not started_at: a call created from a transcription
@@ -100,33 +110,53 @@ export function useDashboardStats(): DashboardState {
             // functions are disabled on Supabase (PGRST123), so SUM() is not
             // available over the API. Fine for hundreds of rows; past that this
             // wants a database view or an RPC that returns the total directly.
-            supabase.from('transcripts').select('duration_seconds').eq('status', 'ready'),
-          ]);
+        supabase
+          .from('transcripts')
+          .select('duration_seconds')
+          .eq('status', 'ready')
+          .then((res) => {
+            if (res.error) throw new Error(res.error.message);
+            return res.data ?? [];
+          }),
+      ]);
 
-        if (cancelled) return;
-        if (durations.error) throw new Error(durations.error.message);
+    (async () => {
+      let settled = await runQueries();
 
-        const seconds = (durations.data ?? []).reduce(
-          (sum, row) => sum + (row.duration_seconds ?? 0),
-          0
-        );
-
-        setCounts({
-          sessions,
-          hours: (durations.data ?? []).length === 0 ? null : seconds / 3600,
-          actionItemsOpen,
-          callsThisWeek,
-          whatsappConnected: numbers > 0,
-          transcriptsFailed,
-        });
-        setError(null);
-      } catch (err) {
-        if (cancelled) return;
-        setCounts(EMPTY);
-        setError(err instanceof Error ? err.message : String(err));
-      } finally {
-        if (!cancelled) setLoading(false);
+      // Signing in and loading the dashboard happen almost together, and a
+      // request can leave before the session token is attached — one query
+      // comes back 401 while its five siblings succeed. Retry once rather than
+      // leaving a hole in the dashboard for something that fixes itself.
+      if (settled.some((r) => r.status === 'rejected') && !cancelled) {
+        await new Promise((r) => setTimeout(r, 1200));
+        if (!cancelled) settled = await runQueries();
       }
+      if (cancelled) return;
+
+      const [sessions, actionItemsOpen, callsThisWeek, numbers, transcriptsFailed, durations] =
+        settled;
+
+      // Each figure stands on its own: one failure no longer blanks the rest.
+      const rows = valueOf(durations as PromiseSettledResult<{ duration_seconds: number | null }[]>);
+      const numberCount = valueOf(numbers as PromiseSettledResult<number>);
+
+      setCounts({
+        sessions: valueOf(sessions as PromiseSettledResult<number>),
+        hours:
+          rows === null ? null : rows.length === 0 ? null : rows.reduce((sum, r) => sum + (r.duration_seconds ?? 0), 0) / 3600,
+        actionItemsOpen: valueOf(actionItemsOpen as PromiseSettledResult<number>),
+        callsThisWeek: valueOf(callsThisWeek as PromiseSettledResult<number>),
+        whatsappConnected: numberCount === null ? null : numberCount > 0,
+        transcriptsFailed: valueOf(transcriptsFailed as PromiseSettledResult<number>),
+      });
+
+      const failures = settled.filter((r) => r.status === 'rejected');
+      setError(
+        failures.length === 0
+          ? null
+          : `${failures.length} of ${settled.length} dashboard figures could not be loaded`
+      );
+      setLoading(false);
     })();
 
     return () => {
@@ -138,7 +168,8 @@ export function useDashboardStats(): DashboardState {
     ...counts,
     loading,
     error,
-    isEmpty: !loading && error === null && counts.sessions === 0,
+    // Strictly zero. Null means unknown, which is not the same as empty.
+    isEmpty: !loading && counts.sessions === 0,
     reload,
   };
 }
