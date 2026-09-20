@@ -97,26 +97,31 @@ When a transcript failed, the app can ask the server to fetch it again. The func
 - Home's recent list, the Archive and the transcript screen read real rows from Supabase.
 - Failed transcripts are shown with a red badge, an explanation and a **Retry download** button — never hidden.
 - Settings shows the signed-in email and a sign-out button.
+- The dashboard figures (sessions, hours, outstanding actions) are counted from real rows. A figure with no source shows an em dash rather than a zero that would read as a fact.
+- A business with no calls gets a proper empty state instead of zeros and blank lists.
 - Setting `EXPO_PUBLIC_DATA_SOURCE=mock` switches back to the old demo data, for side-by-side comparison.
 
 | Proof | Where |
 |---|---|
 | In a real browser: sign-in, then the seeded transcript and its 4 segments rendered; an edit made directly in the database appeared in the app; mock mode made zero network calls | Local |
 | In a real browser: sign-in; both transcripts listed, the failed one visible with its badge; 4 segments rendered; Retry returned a plain failure message without crashing; sign-out cleared the session and returned to the sign-in screen | Dev |
+| Two businesses checked in a browser: one with data (Sessions 2, Hours <0.1, Actions 0 — matching the database exactly) and one with none (Sessions 0, Hours —, empty-state card, Archive's "nothing yet" message) | Dev |
 
 ---
 
 ## What does not work (yet)
 
 - **No real Meta credentials.** The dev deployment runs on throwaway test secrets. No real WhatsApp call has ever reached this system.
-- **The app is still partly mock.** The dashboard stats, onboarding feature cards and Settings read `src/data/mockData.ts`.
-- **The Live screen is fake.** The record button starts a timer and shows three hard-coded lines. **The WhatsApp Connect screen is fake** too — "Connected" is static text.
-- **No summaries or action items.** Meta returns transcripts only; an LLM pass is needed and not built. Transcript titles are placeholders ("WhatsApp call · +27…") until then.
+- **`mockData.ts` is gone.** No screen shows invented data. Demo transcripts survive only behind `EXPO_PUBLIC_DATA_SOURCE=mock`, which no live path uses.
+- **The WhatsApp Connect screen is still fake** — "Connected" is static text with a made-up number.
+- **The Live screen does nothing yet.** Its fake recorder has been removed; it now says so plainly. It should become a call status view driven by the call lifecycle webhooks — see the TODO at the top of the file.
+- **No plan or billing.** Nothing stores a subscription tier, so Home and Settings say "Plan not set". Do not add a tier label until something real backs it.
+- **No summaries or action items.** Meta returns transcripts only; an LLM pass is needed and not built. Transcript titles are placeholders ("WhatsApp call · +27…") and the outstanding-actions tile will read 0 until that pass exists.
 - **No voice notes.** They need a separate pipeline (Meta's transcription covers calls only) and none exists.
 - **No sign-up or password reset.** Accounts are created by an admin. Signing out works.
 - **One Meta access token for everyone.** The schema is designed for a token per business, stored in Supabase Vault, but the function still reads a single environment variable. This must change before a second business is onboarded.
 - **Call recording is not enabled.** Transcription only.
-- `expo-audio` is installed and the app declares microphone permissions, but nothing uses them.
+- `expo-audio` and `expo-file-system` are installed but imported nowhere. The microphone permissions they implied have been removed from `app.json`; remove the packages too once in-app meeting recording is ruled out.
 
 ---
 
@@ -226,8 +231,10 @@ src/
   lib/supabase.ts                 the single Supabase client
   lib/database.types.ts           generated from the schema — do not edit
   contexts/AuthContext.tsx        session state, sign-in
-  data/transcriptSource.ts        real-or-mock data + database→UI mapping
-  data/mockData.ts                demo data, being retired
+  data/transcriptSource.ts        real-or-demo transcripts + database→UI mapping
+  data/dashboardStats.ts          dashboard figures counted from the database
+  data/demoTranscripts.ts         demo fixtures, only for EXPO_PUBLIC_DATA_SOURCE=mock
+  constants/content.ts            static product copy (not data)
   screens/                        SignIn, Home, Live, Archive, TranscriptDetail, Settings, …
   components/                     glass UI components
 supabase/
