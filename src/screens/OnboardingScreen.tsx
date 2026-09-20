@@ -32,10 +32,10 @@ export function OnboardingScreen({ navigation }: Props) {
             </View>
             <Text style={[styles.brand, { color: palette.textMuted }]}>Lumiq Industries · Meeting Pro</Text>
             <Text style={[styles.headline, { color: palette.text }]}>
-              Turn every voice note and meeting into searchable, actionable transcripts
+              Turn every WhatsApp business call into a searchable, shareable transcript
             </Text>
             <Text style={[styles.sub, { color: palette.textSecondary }]}>
-              Infinity Colon & VILATECH — delivered inside WhatsApp where your team already works
+              Infinity Colon & VILATECH — for the calls your team already takes on WhatsApp
             </Text>
           </View>
 

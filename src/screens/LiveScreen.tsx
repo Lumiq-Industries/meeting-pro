@@ -43,21 +43,22 @@ export function LiveScreen() {
       <SafeAreaView style={styles.safe} edges={['top']}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <ScreenHeader
-            title="Live"
-            subtitle="Calls in progress on your WhatsApp Business number"
+            title="Calls"
+            subtitle="Status of calls on your WhatsApp Business number"
           />
 
           <GlassCard style={styles.card}>
             <Ionicons name="pulse-outline" size={28} color={BRAND.accent} />
             <Text style={[styles.title, { color: palette.text }]}>Not available yet</Text>
             <Text style={[styles.body, { color: palette.textSecondary }]}>
-              This will show calls happening right now on your WhatsApp Business number, and
-              whether their transcripts have arrived.
+              This will show recent and in-progress calls on your WhatsApp Business number,
+              and whether their transcripts have arrived.
             </Text>
             <Text style={[styles.body, { color: palette.textMuted }]}>
-              Meeting Pro does not record anything on this device. WhatsApp transcribes each
-              call on its own servers and sends the transcript through once the call ends —
-              usually within a minute. Finished transcripts appear in the Archive.
+              Meeting Pro does not record anything on this device, and calls are not
+              transcribed as they happen. WhatsApp transcribes each call on its own servers
+              and sends the transcript only once the call has ended — usually within a
+              minute. Finished transcripts appear in the Archive.
             </Text>
           </GlassCard>
 

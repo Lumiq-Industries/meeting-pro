@@ -11,14 +11,18 @@ export interface FeatureHighlight {
 
 export const FEATURE_HIGHLIGHTS: FeatureHighlight[] = [
   {
+    // Planned, not built: voice notes need their own pipeline, because Meta's
+    // transcription covers calls only.
     icon: 'mic',
     title: 'Voice Note → Text',
-    description: 'Every WhatsApp voice note captured and transcribed instantly.',
+    description: 'Coming soon — WhatsApp voice notes will be transcribed too.',
   },
   {
+    // This one works. It is NOT real-time and never can be: Meta transcribes on
+    // its own servers and sends the result only after the call has ended.
     icon: 'call',
-    title: 'Live Call Transcription',
-    description: 'Real-time transcription during WhatsApp calls.',
+    title: 'Call Transcription',
+    description: 'Each WhatsApp call is transcribed and appears here shortly after it ends.',
   },
   {
     icon: 'search',

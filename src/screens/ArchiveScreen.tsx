@@ -27,7 +27,11 @@ type ArchiveNav = CompositeNavigationProp<
 
 type Props = { navigation: ArchiveNav };
 
-const FILTERS = ['All', 'WhatsApp', 'Meetings', 'Live', 'Tagged'] as const;
+// 'Meetings' and 'Live' were removed: nothing can ever match them. Every
+// transcript comes from a WhatsApp call, and there is no live status — Meta
+// sends a transcript only once a call has ended. A filter that always returns
+// nothing implies a feature that does not exist.
+const FILTERS = ['All', 'WhatsApp', 'Tagged'] as const;
 
 export function ArchiveScreen({ navigation }: Props) {
   const { effectiveTheme } = useTheme();
@@ -42,10 +46,6 @@ export function ArchiveScreen({ navigation }: Props) {
       list = list.filter(
         (t) => t.source === 'whatsapp_call' || t.source === 'whatsapp_voice'
       );
-    } else if (filter === 'Meetings') {
-      list = list.filter((t) => t.source === 'meeting' || t.source === 'upload');
-    } else if (filter === 'Live') {
-      list = list.filter((t) => t.status === 'live');
     } else if (filter === 'Tagged') {
       list = list.filter((t) => t.tags.length > 0);
     }
@@ -71,7 +71,7 @@ export function ArchiveScreen({ navigation }: Props) {
         >
           <ScreenHeader
             title="Archive"
-            subtitle="Every session searchable — voice notes, calls & meetings"
+            subtitle="Every call transcript, searchable"
           />
 
           <SearchBar value={query} onChangeText={setQuery} />

@@ -44,7 +44,7 @@ export function HomeScreen({ navigation }: Props) {
           <ScreenHeader
             badge="Lumiq Industries"
             title="Meeting Pro"
-            subtitle="Transcribe WhatsApp calls & meetings — like Teams, Zoom & Meet"
+            subtitle="Searchable transcripts of your WhatsApp Business calls"
             rightAction={{
               icon: 'logo-whatsapp',
               onPress: () => navigation.navigate('WhatsAppConnect'),
@@ -52,7 +52,9 @@ export function HomeScreen({ navigation }: Props) {
             }}
           />
 
-          {/* Hero CTA — Zoom/Teams-style primary action */}
+          {/* Not a call-to-action: there is nothing to start. Transcription
+              happens on Meta's servers after a call ends. This explains that
+              rather than offering a button that cannot do anything. */}
           <Pressable onPress={() => navigation.navigate('Live')}>
             <View style={styles.heroOuter}>
               <LinearGradient
@@ -66,9 +68,9 @@ export function HomeScreen({ navigation }: Props) {
                     <Ionicons name="videocam" size={28} color="#FFF" />
                   </View>
                   <View style={styles.heroText}>
-                    <Text style={styles.heroTitle}>Start transcription</Text>
+                    <Text style={styles.heroTitle}>Transcription is automatic</Text>
                     <Text style={styles.heroSub}>
-                      Live WhatsApp calls · Voice notes · Team meetings
+                      Calls are transcribed after they end — nothing to start
                     </Text>
                   </View>
                   <Ionicons name="arrow-forward-circle" size={32} color="#FFF" />
@@ -94,19 +96,23 @@ export function HomeScreen({ navigation }: Props) {
           <View style={styles.statsGrid}>
             <StatCard
               label="Sessions"
-              value={stats.loading || stats.error ? NO_VALUE : String(stats.sessions)}
+              value={stats.loading || stats.sessions === null ? NO_VALUE : String(stats.sessions)}
               icon="document-text"
               palette={palette}
             />
             <StatCard
               label="Hours"
-              value={stats.loading || stats.error ? NO_VALUE : formatHours(stats.hours) ?? NO_VALUE}
+              value={stats.loading ? NO_VALUE : formatHours(stats.hours) ?? NO_VALUE}
               icon="time"
               palette={palette}
             />
             <StatCard
               label="Actions"
-              value={stats.loading || stats.error ? NO_VALUE : String(stats.actionItemsOpen)}
+              value={
+                stats.loading || stats.actionItemsOpen === null
+                  ? NO_VALUE
+                  : String(stats.actionItemsOpen)
+              }
               icon="checkbox"
               palette={palette}
             />
@@ -115,9 +121,11 @@ export function HomeScreen({ navigation }: Props) {
 
           <SectionHeader title="Quick actions" />
           <View style={styles.actionsRow}>
-            <QuickAction icon="mic" label="Voice note" color={BRAND.whatsapp} palette={palette} onPress={() => navigation.navigate('Live')} />
-            <QuickAction icon="call" label="Live call" color={BRAND.accent} palette={palette} onPress={() => navigation.navigate('Live')} />
+            {/* Every one of these goes somewhere that exists. "Voice note" and
+                "Live call" used to sit here as if you could start either. */}
+            <QuickAction icon="call" label="Calls" color={BRAND.accent} palette={palette} onPress={() => navigation.navigate('Live')} />
             <QuickAction icon="search" label="Archive" color={BRAND.gold} palette={palette} onPress={() => navigation.navigate('Archive')} />
+            <QuickAction icon="logo-whatsapp" label="WhatsApp" color={BRAND.whatsapp} palette={palette} onPress={() => navigation.navigate('WhatsAppConnect')} />
           </View>
 
           <SectionHeader
@@ -145,9 +153,9 @@ export function HomeScreen({ navigation }: Props) {
                 </Text>
                 {!transcriptsLoading && (
                   <Text style={[styles.emptyBody, { color: palette.textSecondary }]}>
-                    {stats.whatsappConnected
-                      ? 'Transcripts appear here after a call on your WhatsApp Business number. WhatsApp transcribes the call and sends it through once the call ends.'
-                      : 'Connect a WhatsApp Business number to start capturing calls.'}
+                    {stats.whatsappConnected === false
+                      ? 'No WhatsApp Business number is connected yet, so there is nothing to transcribe.'
+                      : 'Transcripts appear here after a call on your WhatsApp Business number. WhatsApp transcribes the call and sends it through once the call ends.'}
                   </Text>
                 )}
               </GlassCard>

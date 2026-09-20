@@ -13,7 +13,8 @@ const TAB_CONFIG: Record<
   { icon: keyof typeof Ionicons.glyphMap; label: string }
 > = {
   Home: { icon: 'home', label: 'Home' },
-  Live: { icon: 'radio', label: 'Live' },
+  // Route key stays 'Live'; the label and icon must not imply live transcription.
+  Live: { icon: 'call', label: 'Calls' },
   Archive: { icon: 'archive', label: 'Archive' },
   Settings: { icon: 'settings', label: 'Settings' },
 };
@@ -77,9 +78,8 @@ export function GlassTabBar({ state, navigation }: BottomTabBarProps) {
                     size={22}
                     color={focused ? BRAND.accent : palette.textMuted}
                   />
-                  {route.name === 'Live' && (
-                    <View style={styles.liveIndicator} />
-                  )}
+                  {/* The red "live" dot was removed with the fake recorder —
+                      nothing is ever live. */}
                 </View>
                 <Text
                   style={[
