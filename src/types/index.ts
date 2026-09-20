@@ -39,13 +39,6 @@ export interface Transcript {
   keywordMatches?: number;
 }
 
-export interface DashboardStats {
-  totalSessions: number;
-  hoursTranscribed: number;
-  actionItemsGenerated: number;
-  whatsappConnected: boolean;
-  plan: 'voice_call' | 'meeting_pro' | 'enterprise';
-}
 
 export type RootStackParamList = {
   Onboarding: undefined;
