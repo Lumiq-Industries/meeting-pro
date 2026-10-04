@@ -18,7 +18,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vilatech.meetingpro",
+      "bundleIdentifier": "com.lumiqindustries.meetingpro",
       "minimumOsVersion": "16.0",
       "buildNumber": "1",
       "infoPlist": {
@@ -32,14 +32,20 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a1628"
       },
-      "package": "com.vilatech.meetingpro",
+      "package": "com.lumiqindustries.meetingpro",
       "permissions": [
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
-      "favicon": "./assets/icon.png"
+      "favicon": "./assets/icon.png",
+      "bundler": "metro",
+      "name": "Meeting Pro",
+      "shortName": "Meeting Pro",
+      "description": "WhatsApp Business call transcripts for Lumiq Industries",
+      "themeColor": "#0a1628",
+      "backgroundColor": "#0a1628"
     },
     "plugins": [
       "expo-asset",

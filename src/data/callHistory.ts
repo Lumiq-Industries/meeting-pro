@@ -70,6 +70,46 @@ export function formatCallNumber(raw: string | null): string | null {
   return `+${cc} ${rest.slice(0, 2)} ${rest.slice(2, 5)} ${rest.slice(5)}`;
 }
 
+function mapRows(data: DbCallRow[]): CallRecord[] {
+  return data.map((row) => {
+    const transcript = firstTranscript(row.transcripts);
+    return {
+      id: row.id,
+      counterparty: formatCallNumber(row.counterparty_phone),
+      direction: (row.direction as CallRecord['direction']) ?? 'unknown',
+      startedAt: row.started_at,
+      durationSeconds: row.duration_seconds,
+      status: row.status,
+      transcriptId: transcript?.id ?? null,
+      transcriptTitle: transcript?.title ?? null,
+      transcriptState:
+        transcript === null
+          ? 'waiting'
+          : transcript.status === 'ready'
+            ? 'ready'
+            : transcript.status === 'failed'
+              ? 'failed'
+              : 'waiting',
+    };
+  });
+}
+
+async function fetchCallHistory(): Promise<{ calls: CallRecord[]; error: string | null }> {
+  const { data, error: err } = await supabase
+    .from('calls')
+    .select(
+      'id, direction, counterparty_phone, started_at, duration_seconds, status, transcripts(id, title, status)'
+    )
+    .order('started_at', { ascending: false, nullsFirst: false })
+    .limit(50);
+
+  if (err) return { calls: [], error: err.message };
+  return {
+    calls: mapRows((data ?? []) as unknown as DbCallRow[]),
+    error: null,
+  };
+}
+
 export function useCallHistory(): CallHistoryState {
   const [calls, setCalls] = useState<CallRecord[]>([]);
   const [loading, setLoading] = useState(DATA_SOURCE === 'supabase');
@@ -78,58 +118,37 @@ export function useCallHistory(): CallHistoryState {
   const reload = useCallback(() => setNonce((n) => n + 1), []);
 
   useEffect(() => {
-    // Demo mode has no call records — only transcripts — so the screen says so
-    // rather than inventing call rows to match.
     if (DATA_SOURCE === 'mock') {
       setLoading(false);
       return;
     }
-    let cancelled = false;
-    setLoading(true);
 
-    supabase
-      .from('calls')
-      .select(
-        'id, direction, counterparty_phone, started_at, duration_seconds, status, transcripts(id, title, status)'
-      )
-      .order('started_at', { ascending: false, nullsFirst: false })
-      .limit(50)
-      .then(({ data, error: err }) => {
-        if (cancelled) return;
-        if (err) {
-          setError(err.message);
-          setCalls([]);
-        } else {
-          setError(null);
-          setCalls(
-            ((data ?? []) as unknown as DbCallRow[]).map((row) => {
-              const transcript = firstTranscript(row.transcripts);
-              return {
-                id: row.id,
-                counterparty: formatCallNumber(row.counterparty_phone),
-                direction: (row.direction as CallRecord['direction']) ?? 'unknown',
-                startedAt: row.started_at,
-                durationSeconds: row.duration_seconds,
-                status: row.status,
-                transcriptId: transcript?.id ?? null,
-                transcriptTitle: transcript?.title ?? null,
-                transcriptState:
-                  transcript === null
-                    ? 'waiting'
-                    : transcript.status === 'ready'
-                      ? 'ready'
-                      : transcript.status === 'failed'
-                        ? 'failed'
-                        : 'waiting',
-              };
-            })
-          );
-        }
-        setLoading(false);
-      });
+    let cancelled = false;
+
+    const load = async (showSpinner: boolean) => {
+      if (showSpinner) setLoading(true);
+      const result = await fetchCallHistory();
+      if (cancelled) return;
+      setError(result.error);
+      setCalls(result.calls);
+      setLoading(false);
+    };
+
+    load(true);
+
+    const channel = supabase
+      .channel('meeting-pro-calls')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'calls' }, () => {
+        load(false);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transcripts' }, () => {
+        load(false);
+      })
+      .subscribe();
 
     return () => {
       cancelled = true;
+      supabase.removeChannel(channel);
     };
   }, [nonce]);
 

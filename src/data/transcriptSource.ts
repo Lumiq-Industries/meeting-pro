@@ -236,25 +236,38 @@ export function useTranscripts(): ListState {
   useEffect(() => {
     if (DATA_SOURCE === 'mock') return;
     let cancelled = false;
-    setLoading(true);
-    supabase
-      .from('transcripts')
-      .select(LIST_SELECT)
-      .order('created_at', { ascending: false })
-      .then(({ data, error: err }) => {
-        if (cancelled) return;
-        if (err) {
-          setError(err.message);
-          setTranscripts([]);
-        } else {
-          setError(null);
-          const rows = (data ?? []) as unknown as DbRow[];
-          setTranscripts(rows.map((r) => toTranscript(r).transcript));
-        }
-        setLoading(false);
-      });
+
+    const load = async (showSpinner: boolean) => {
+      if (showSpinner) setLoading(true);
+      const { data, error: err } = await supabase
+        .from('transcripts')
+        .select(LIST_SELECT)
+        .order('created_at', { ascending: false });
+
+      if (cancelled) return;
+      if (err) {
+        setError(err.message);
+        setTranscripts([]);
+      } else {
+        setError(null);
+        const rows = (data ?? []) as unknown as DbRow[];
+        setTranscripts(rows.map((r) => toTranscript(r).transcript));
+      }
+      setLoading(false);
+    };
+
+    load(true);
+
+    const channel = supabase
+      .channel('meeting-pro-transcripts-list')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transcripts' }, () => {
+        load(false);
+      })
+      .subscribe();
+
     return () => {
       cancelled = true;
+      supabase.removeChannel(channel);
     };
   }, [nonce]);
 
