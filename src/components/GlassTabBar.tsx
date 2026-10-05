@@ -6,6 +6,7 @@ import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { COLORS, RADIUS, FONT, BRAND } from '../constants/theme';
+import { LAYOUT } from '../constants/layout';
 import { getGlassVariant, getBlurIntensity } from '../utils/platform';
 
 const TAB_CONFIG: Record<
@@ -34,6 +35,7 @@ export function GlassTabBar({ state, navigation }: BottomTabBarProps) {
           {
             borderRadius: variant === 'liquid' ? RADIUS.xl : RADIUS.lg,
             borderColor: palette.glassBorder,
+            maxWidth: LAYOUT.maxTabBarWidth,
           },
         ]}
       >
@@ -101,11 +103,14 @@ export function GlassTabBar({ state, navigation }: BottomTabBarProps) {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    left: 16,
-    right: 16,
+    left: 0,
+    right: 0,
     bottom: 0,
+    alignItems: 'center',
+    paddingHorizontal: 16,
   },
   barOuter: {
+    width: '100%',
     overflow: 'hidden',
     borderWidth: 1,
     ...Platform.select({

@@ -18,6 +18,7 @@ import {
   getGlassOpacity,
   getGlassBorderOpacity,
 } from '../utils/platform';
+import { webOnlyStyle } from '../utils/webStyles';
 
 interface GlassCardProps {
   children: ReactNode;
@@ -67,6 +68,13 @@ export function GlassCard({
               backgroundColor: isDark ? palette.glassFill : palette.glassFill,
               opacity: fillOpacity,
             },
+            webOnlyStyle({
+              backdropFilter: 'blur(22px)',
+              WebkitBackdropFilter: 'blur(22px)',
+              backgroundColor: isDark
+                ? 'rgba(255, 255, 255, 0.07)'
+                : 'rgba(255, 255, 255, 0.55)',
+            }),
           ]}
         />
       )}

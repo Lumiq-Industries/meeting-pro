@@ -13,6 +13,7 @@ import { CompositeNavigationProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { GlassBackground } from '../components/GlassBackground';
+import { ContentColumn } from '../components/ContentColumn';
 import { GlassCard } from '../components/GlassCard';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useTheme } from '../contexts/ThemeContext';
@@ -41,6 +42,7 @@ export function SettingsScreen({ navigation }: Props) {
     <GlassBackground>
       <SafeAreaView style={styles.safe} edges={['top']}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          <ContentColumn>
           <ScreenHeader title="Settings" subtitle={profile.businessName ?? ''} />
 
           <GlassCard style={styles.profileCard}>
@@ -169,6 +171,7 @@ export function SettingsScreen({ navigation }: Props) {
           </Text>
 
           <View style={{ height: LAYOUT.tabBarClearance }} />
+          </ContentColumn>
         </ScrollView>
       </SafeAreaView>
     </GlassBackground>

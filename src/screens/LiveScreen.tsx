@@ -6,6 +6,7 @@ import { CompositeNavigationProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { GlassBackground } from '../components/GlassBackground';
+import { ContentColumn } from '../components/ContentColumn';
 import { GlassCard } from '../components/GlassCard';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useTheme } from '../contexts/ThemeContext';
@@ -65,6 +66,7 @@ export function LiveScreen({ navigation }: Props) {
             <RefreshControl refreshing={loading} onRefresh={reload} tintColor={palette.textMuted} />
           }
         >
+          <ContentColumn>
           <ScreenHeader
             title="Calls"
             subtitle="Calls on your WhatsApp Business number, newest first"
@@ -142,6 +144,7 @@ export function LiveScreen({ navigation }: Props) {
           )}
 
           <View style={{ height: LAYOUT.tabBarClearance }} />
+          </ContentColumn>
         </ScrollView>
       </SafeAreaView>
     </GlassBackground>

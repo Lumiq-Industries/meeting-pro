@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { RootNavigator } from './navigation/RootNavigator';
 import { LoadingScreen } from './screens/LoadingScreen';
 import { SignInScreen } from './screens/SignInScreen';
+import { WebAppFrame } from './components/WebAppFrame';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -63,7 +64,9 @@ export default function App() {
       <SafeAreaProvider>
         <ThemeProvider>
           <AuthProvider>
-            <AppContent />
+            <WebAppFrame>
+              <AppContent />
+            </WebAppFrame>
           </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>

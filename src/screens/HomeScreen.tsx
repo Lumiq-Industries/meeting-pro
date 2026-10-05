@@ -8,6 +8,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassBackground } from '../components/GlassBackground';
 import { GlassCard } from '../components/GlassCard';
+import { ContentColumn } from '../components/ContentColumn';
 import { TranscriptCard } from '../components/TranscriptCard';
 import { ScreenHeader, SectionHeader } from '../components/ScreenHeader';
 import { useTheme } from '../contexts/ThemeContext';
@@ -41,6 +42,7 @@ export function HomeScreen({ navigation }: Props) {
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
         >
+          <ContentColumn>
           <ScreenHeader
             badge="Lumiq Industries"
             title="Meeting Pro"
@@ -180,6 +182,7 @@ export function HomeScreen({ navigation }: Props) {
           </View>
 
           <View style={{ height: LAYOUT.tabBarClearance }} />
+          </ContentColumn>
         </ScrollView>
       </SafeAreaView>
     </GlassBackground>

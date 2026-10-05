@@ -11,6 +11,7 @@ import { CompositeNavigationProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { GlassBackground } from '../components/GlassBackground';
+import { ContentColumn } from '../components/ContentColumn';
 import { SearchBar } from '../components/SearchBar';
 import { TranscriptCard } from '../components/TranscriptCard';
 import { ScreenHeader } from '../components/ScreenHeader';
@@ -68,6 +69,7 @@ export function ArchiveScreen({ navigation }: Props) {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          <ContentColumn>
           <ScreenHeader
             title="Archive"
             subtitle="Every call transcript, searchable"
@@ -140,6 +142,7 @@ export function ArchiveScreen({ navigation }: Props) {
           )}
 
           <View style={{ height: LAYOUT.tabBarClearance }} />
+          </ContentColumn>
         </ScrollView>
       </SafeAreaView>
     </GlassBackground>
