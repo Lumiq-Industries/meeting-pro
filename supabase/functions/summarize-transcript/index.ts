@@ -30,7 +30,7 @@ const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
 const MODEL = "claude-haiku-4-5";
 // A title, a few sentences and a short list. Deliberately small — this is a
 // bounded output, and output tokens are the expensive half.
-const MAX_TOKENS = 2000;
+const MAX_TOKENS = 4096;
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -124,6 +124,20 @@ Deno.serve(async (req: Request) => {
       { db: new SupabaseDb(admin), callModel },
       { force: body.force === true },
     );
+
+    if (result.outcome === "ready") {
+      const hookSecret = Deno.env.get("MEETING_MINUTES_HOOK_SECRET");
+      const emailUrl = `${supabaseUrl}/functions/v1/send-meeting-minutes`;
+      fetch(emailUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(hookSecret ? { Authorization: `Bearer ${hookSecret}` } : {}),
+        },
+        body: JSON.stringify({ transcript_id: transcriptId }),
+      }).catch((e) => logError("email.minutes.trigger_failed", { error: String(e) }));
+    }
+
     return json(result, result.outcome === "not_found" ? 404 : 200);
   } catch (err) {
     // Typed-error chain, most specific first.

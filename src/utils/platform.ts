@@ -19,8 +19,10 @@ export function supportsLiquidGlass(): boolean {
   return major !== null && major >= 26;
 }
 
+/** Web + iOS 26 use full liquid material; other native uses standard glass. */
 export function getGlassVariant(): GlassVariant {
-  return supportsLiquidGlass() ? 'liquid' : 'standard';
+  if (Platform.OS === 'web' || supportsLiquidGlass()) return 'liquid';
+  return 'standard';
 }
 
 export function getDeviceLabel(): string {
@@ -38,9 +40,9 @@ export function getDeviceLabel(): string {
 
 export function getBlurIntensity(variant: GlassVariant, isDark: boolean): number {
   if (variant === 'liquid') {
-    return isDark ? 55 : 45;
+    return isDark ? 48 : 40;
   }
-  return isDark ? 40 : 35;
+  return isDark ? 36 : 32;
 }
 
 export function getGlassOpacity(variant: GlassVariant, isDark: boolean): number {

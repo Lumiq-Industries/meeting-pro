@@ -68,30 +68,83 @@ export type Database = {
           },
         ]
       }
-      business_members: {
+      business_contacts: {
         Row: {
           business_id: string
+          company: string | null
           created_at: string
+          display_name: string
+          email: string | null
           id: string
-          role: Database["public"]["Enums"]["member_role"]
+          notes: string | null
+          phone: string
           updated_at: string
-          user_id: string
         }
         Insert: {
           business_id: string
+          company?: string | null
           created_at?: string
+          display_name: string
+          email?: string | null
           id?: string
-          role?: Database["public"]["Enums"]["member_role"]
+          notes?: string | null
+          phone: string
           updated_at?: string
-          user_id: string
         }
         Update: {
           business_id?: string
+          company?: string | null
           created_at?: string
+          display_name?: string
+          email?: string | null
           id?: string
+          notes?: string | null
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_contacts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_members: {
+        Row: {
+          business_id: string
+          clerk_user_id: string | null
+          created_at: string
+          email_minutes_enabled: boolean
+          id: string
+          meeting_minutes_email: string | null
+          role: Database["public"]["Enums"]["member_role"]
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          business_id: string
+          clerk_user_id?: string | null
+          created_at?: string
+          email_minutes_enabled?: boolean
+          id?: string
+          meeting_minutes_email?: string | null
           role?: Database["public"]["Enums"]["member_role"]
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
+        }
+        Update: {
+          business_id?: string
+          clerk_user_id?: string | null
+          created_at?: string
+          email_minutes_enabled?: boolean
+          id?: string
+          meeting_minutes_email?: string | null
+          role?: Database["public"]["Enums"]["member_role"]
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {

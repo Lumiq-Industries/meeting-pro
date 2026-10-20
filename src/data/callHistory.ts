@@ -5,8 +5,11 @@
 // is the only place that shows the call itself, so it has to be honest about
 // which of those is true.
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { useSupabase } from '../contexts/SupabaseContext';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '../lib/database.types';
 import { DATA_SOURCE } from './transcriptSource';
+import { demoCallRecords } from './demoCallRecords';
 
 export type CallTranscriptState = 'ready' | 'failed' | 'waiting';
 
@@ -94,7 +97,9 @@ function mapRows(data: DbCallRow[]): CallRecord[] {
   });
 }
 
-async function fetchCallHistory(): Promise<{ calls: CallRecord[]; error: string | null }> {
+async function fetchCallHistory(
+  supabase: SupabaseClient<Database>
+): Promise<{ calls: CallRecord[]; error: string | null }> {
   const { data, error: err } = await supabase
     .from('calls')
     .select(
@@ -111,6 +116,7 @@ async function fetchCallHistory(): Promise<{ calls: CallRecord[]; error: string 
 }
 
 export function useCallHistory(): CallHistoryState {
+  const supabase = useSupabase();
   const [calls, setCalls] = useState<CallRecord[]>([]);
   const [loading, setLoading] = useState(DATA_SOURCE === 'supabase');
   const [error, setError] = useState<string | null>(null);
@@ -119,6 +125,7 @@ export function useCallHistory(): CallHistoryState {
 
   useEffect(() => {
     if (DATA_SOURCE === 'mock') {
+      setCalls(demoCallRecords);
       setLoading(false);
       return;
     }
@@ -127,7 +134,7 @@ export function useCallHistory(): CallHistoryState {
 
     const load = async (showSpinner: boolean) => {
       if (showSpinner) setLoading(true);
-      const result = await fetchCallHistory();
+      const result = await fetchCallHistory(supabase);
       if (cancelled) return;
       setError(result.error);
       setCalls(result.calls);
@@ -150,7 +157,7 @@ export function useCallHistory(): CallHistoryState {
       cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [nonce]);
+  }, [nonce, supabase]);
 
   return { calls, loading, error, reload };
 }

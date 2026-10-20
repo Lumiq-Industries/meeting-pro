@@ -7,19 +7,23 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { COLORS, RADIUS, FONT, BRAND } from '../constants/theme';
 import { LAYOUT } from '../constants/layout';
+import { GLASS } from '../constants/glass';
+import { webOnlyStyle } from '../utils/webStyles';
 import { getGlassVariant, getBlurIntensity } from '../utils/platform';
 
 const TAB_CONFIG: Record<
   string,
   { icon: keyof typeof Ionicons.glyphMap; label: string }
 > = {
-  Home: { icon: 'home', label: 'Home' },
+  Home: { icon: 'grid', label: 'Dashboard' },
+  Contacts: { icon: 'people', label: 'Contacts' },
   // Route key stays 'Live'; the label and icon must not imply live transcription.
   Live: { icon: 'call', label: 'Calls' },
-  Archive: { icon: 'archive', label: 'Archive' },
+  Archive: { icon: 'document-text', label: 'Minutes' },
   Settings: { icon: 'settings', label: 'Settings' },
 };
 
+/** Primary liquid-glass chrome — floating nav over corporate content. */
 export function GlassTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { effectiveTheme } = useTheme();
@@ -28,15 +32,23 @@ export function GlassTabBar({ state, navigation }: BottomTabBarProps) {
   const variant = getGlassVariant();
 
   return (
-    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+    <View
+      style={[styles.container, { paddingBottom: Math.max(insets.bottom, 12) }]}
+      pointerEvents="box-none"
+    >
       <View
         style={[
           styles.barOuter,
           {
             borderRadius: variant === 'liquid' ? RADIUS.xl : RADIUS.lg,
-            borderColor: palette.glassBorder,
+            borderColor: GLASS.border.rim,
             maxWidth: LAYOUT.maxTabBarWidth,
           },
+          webOnlyStyle({
+            backdropFilter: `blur(${GLASS.blur.webPx.tabBar}px) saturate(${GLASS.saturate.web})`,
+            WebkitBackdropFilter: `blur(${GLASS.blur.webPx.tabBar}px) saturate(${GLASS.saturate.web})`,
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.14), 0 8px 24px -8px rgba(0,0,0,0.55)',
+          }),
         ]}
       >
         {Platform.OS === 'ios' && (

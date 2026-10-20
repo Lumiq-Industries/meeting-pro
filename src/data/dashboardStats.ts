@@ -8,9 +8,10 @@
 //   plan / subscription tier — no table, column or billing integration stores
 //     it. Home and Settings show "Not set" until there is a real source.
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { useSupabase } from '../contexts/SupabaseContext';
 import { DATA_SOURCE } from './transcriptSource';
 import { demoTranscripts } from './demoTranscripts';
+import { demoCallRecords } from './demoCallRecords';
 
 // Every figure is `| null`, and null means "we do not know" — a query that
 // failed, or one that has not run. It is never rendered as 0.
@@ -72,7 +73,8 @@ function demoCounts(): DashboardCounts {
   const open = demoTranscripts.flatMap((t) => t.actionItems ?? []).filter((a) => !a.completed);
   return {
     ...UNKNOWN,
-    sessions: demoTranscripts.length,
+    sessions: demoCallRecords.length,
+    callsThisWeek: demoCallRecords.length,
     actionItemsOpen: open.length,
     whatsappConnected: true,
     // Demo durations are display strings ("42 min"), not numbers, so there is
@@ -82,6 +84,7 @@ function demoCounts(): DashboardCounts {
 }
 
 export function useDashboardStats(): DashboardState {
+  const supabase = useSupabase();
   const [counts, setCounts] = useState<DashboardCounts>(
     DATA_SOURCE === 'mock' ? demoCounts() : UNKNOWN
   );
@@ -162,7 +165,7 @@ export function useDashboardStats(): DashboardState {
     return () => {
       cancelled = true;
     };
-  }, [nonce]);
+  }, [nonce, supabase]);
 
   return {
     ...counts,

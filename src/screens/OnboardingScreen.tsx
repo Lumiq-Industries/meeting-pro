@@ -1,119 +1,110 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { GlassBackground } from '../components/GlassBackground';
 import { GlassCard } from '../components/GlassCard';
+import { StackScreenLayout } from '../components/StackScreenLayout';
+import { MeetingProMark } from '../components/MeetingProMark';
 import { useTheme } from '../contexts/ThemeContext';
-import { COLORS, FONT, RADIUS, BRAND } from '../constants/theme';
-import { FEATURE_HIGHLIGHTS } from '../constants/content';
+import { COLORS, FONT, RADIUS, BRAND, SPACING } from '../constants/theme';
 import { RootStackParamList } from '../types';
-import { getDeviceLabel } from '../utils/platform';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Onboarding'>;
+
+const STEPS = [
+  {
+    icon: 'people' as const,
+    title: 'Business contacts',
+    description: 'Save the people you work with on WhatsApp.',
+  },
+  {
+    icon: 'call' as const,
+    title: 'Automatic transcription',
+    description: 'When a Business call ends, Meeting Pro captures the conversation.',
+  },
+  {
+    icon: 'mail' as const,
+    title: 'Minutes to your inbox',
+    description: 'AI summary and action items — share with clients like formal minutes.',
+  },
+  {
+    icon: 'grid' as const,
+    title: 'Dashboard metrics',
+    description: 'Answer rates, call length, and outcomes at a glance.',
+  },
+];
 
 export function OnboardingScreen({ navigation }: Props) {
   const { effectiveTheme } = useTheme();
   const palette = COLORS[effectiveTheme];
 
   return (
-    <GlassBackground>
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.content}>
-          <View style={styles.hero}>
-            <View style={[styles.logoWrap, { backgroundColor: `${BRAND.whatsapp}22` }]}>
-              <Ionicons name="logo-whatsapp" size={40} color={BRAND.whatsapp} />
+    <StackScreenLayout contentStyle={styles.scrollBody}>
+      <View style={styles.hero}>
+        <MeetingProMark size={88} framed />
+        <Text style={[styles.brand, { color: palette.textMuted }]}>Lumiq Industries</Text>
+        <Text style={[styles.headline, { color: palette.text }]}>Meeting Pro</Text>
+        <Text style={[styles.sub, { color: palette.textSecondary }]}>
+          WhatsApp Business minutes for people who live on work calls — transcribe, measure, email,
+          share.
+        </Text>
+      </View>
+
+      <View style={styles.features}>
+        {STEPS.map((f) => (
+          <GlassCard key={f.title} style={styles.featureCard}>
+            <Ionicons name={f.icon} size={22} color={BRAND.accent} />
+            <View style={styles.featureText}>
+              <Text style={[styles.featureTitle, { color: palette.text }]}>{f.title}</Text>
+              <Text style={[styles.featureDesc, { color: palette.textSecondary }]}>
+                {f.description}
+              </Text>
             </View>
-            <Text style={[styles.brand, { color: palette.textMuted }]}>Lumiq Industries · Meeting Pro</Text>
-            <Text style={[styles.headline, { color: palette.text }]}>
-              Turn every WhatsApp business call into a searchable, shareable transcript
-            </Text>
-            <Text style={[styles.sub, { color: palette.textSecondary }]}>
-              Infinity Colon & VILATECH — for the calls your team already takes on WhatsApp
-            </Text>
-          </View>
+          </GlassCard>
+        ))}
+      </View>
 
-          <View style={styles.features}>
-            {FEATURE_HIGHLIGHTS.map((f) => (
-              <GlassCard key={f.title} style={styles.featureCard}>
-                <Ionicons name={f.icon} size={22} color={BRAND.accent} />
-                <View style={styles.featureText}>
-                  <Text style={[styles.featureTitle, { color: palette.text }]}>{f.title}</Text>
-                  <Text style={[styles.featureDesc, { color: palette.textSecondary }]}>
-                    {f.description}
-                  </Text>
-                </View>
-              </GlassCard>
-            ))}
-          </View>
-
-          <Text style={[styles.deviceNote, { color: palette.textMuted }]}>
-            {getDeviceLabel()} · Glass UI adapts to your OS
-          </Text>
-
-          <Pressable
-            style={[styles.cta, { backgroundColor: BRAND.accent }]}
-            onPress={() => navigation.replace('Main')}
-          >
-            <Text style={styles.ctaText}>Get Started</Text>
-            <Ionicons name="arrow-forward" size={20} color="#FFF" />
-          </Pressable>
-        </View>
-      </SafeAreaView>
-    </GlassBackground>
+      <Pressable
+        style={[styles.cta, { backgroundColor: BRAND.accent }]}
+        onPress={() => navigation.replace('Main')}
+        accessibilityRole="button"
+        accessibilityLabel="Open dashboard"
+      >
+        <Text style={styles.ctaText}>Open dashboard</Text>
+        <Ionicons name="arrow-forward" size={20} color="#FFF" />
+      </Pressable>
+    </StackScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  content: { flex: 1, padding: 24, justifyContent: 'space-between' },
-  hero: { alignItems: 'center', paddingTop: 24 },
-  logoWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: RADIUS.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
+  scrollBody: {
+    gap: SPACING.xl,
+    paddingTop: SPACING.lg,
   },
-  brand: { fontSize: FONT.sm, fontWeight: '600', letterSpacing: 1 },
-  headline: {
-    fontSize: FONT.xxl,
+  hero: { alignItems: 'center', gap: SPACING.sm },
+  brand: {
+    fontSize: FONT.xs,
     fontWeight: '700',
-    textAlign: 'center',
-    lineHeight: 34,
-    marginTop: 12,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginTop: SPACING.sm,
   },
-  sub: {
-    fontSize: FONT.base,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginTop: 12,
-    paddingHorizontal: 8,
-  },
-  features: { gap: 10 },
-  featureCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
+  headline: { fontSize: 28, fontWeight: '800', textAlign: 'center' },
+  sub: { fontSize: FONT.base, textAlign: 'center', lineHeight: 22, maxWidth: 340 },
+  features: { gap: SPACING.sm },
+  featureCard: { flexDirection: 'row', gap: SPACING.md, alignItems: 'flex-start' },
   featureText: { flex: 1 },
-  featureTitle: { fontSize: FONT.base, fontWeight: '600' },
-  featureDesc: { fontSize: FONT.sm, marginTop: 2 },
-  deviceNote: { fontSize: FONT.sm, textAlign: 'center', marginBottom: 12 },
+  featureTitle: { fontSize: FONT.base, fontWeight: '700' },
+  featureDesc: { fontSize: FONT.sm, marginTop: 4, lineHeight: 20 },
   cta: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
+    gap: SPACING.sm,
+    paddingVertical: SPACING.md,
     borderRadius: RADIUS.lg,
+    marginTop: SPACING.sm,
   },
-  ctaText: { color: '#FFF', fontSize: FONT.lg, fontWeight: '700' },
+  ctaText: { color: '#FFF', fontSize: FONT.base, fontWeight: '800' },
 });

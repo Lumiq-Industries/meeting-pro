@@ -1,8 +1,9 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect } from 'react';
 import { StyleSheet, View, ViewStyle, StyleProp, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import { COLORS, BRAND } from '../constants/theme';
+import { LUMIQ_STORY } from '../constants/glass';
 import { webOnlyStyle } from '../utils/webStyles';
 
 interface GlassBackgroundProps {
@@ -10,83 +11,86 @@ interface GlassBackgroundProps {
   style?: StyleProp<ViewStyle>;
 }
 
-function GlowOrb({
-  colors,
-  style,
-}: {
-  colors: readonly [string, string, ...string[]];
-  style: ViewStyle;
-}) {
-  return (
-    <LinearGradient
-      colors={colors}
-      start={{ x: 0.2, y: 0.2 }}
-      end={{ x: 0.9, y: 0.9 }}
-      style={[styles.orb, style]}
-    />
-  );
-}
+const GRAIN_SVG =
+  "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 
+/**
+ * Lumiq story canvas — same language as VILATECH site (soft elliptical gradients + grain),
+ * no hard circular blobs. Liquid glass stays on nav only.
+ */
 export function GlassBackground({ children, style }: GlassBackgroundProps) {
   const { effectiveTheme } = useTheme();
   const palette = COLORS[effectiveTheme];
   const isDark = effectiveTheme === 'dark';
+  const story = isDark ? LUMIQ_STORY.dark : LUMIQ_STORY.light;
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const id = 'meeting-pro-story-keyframes';
+    if (document.getElementById(id)) return;
+    const styleEl = document.createElement('style');
+    styleEl.id = id;
+    styleEl.textContent = `
+      @keyframes meeting-pro-story-ambient {
+        0% { transform: translate3d(0, 0, 0) scale(1); }
+        50% { transform: translate3d(3%, 2.5%, 0) scale(1.05); }
+        100% { transform: translate3d(-2.5%, 4%, 0) scale(1.02); }
+      }
+    `;
+    document.head.appendChild(styleEl);
+  }, []);
+
+  const baseGradient = isDark
+    ? (['#000000', '#030303', '#070707', '#020202', '#000000'] as const)
+    : palette.backgroundGradient;
 
   return (
     <View style={[styles.root, style]}>
       <LinearGradient
-        colors={[...palette.backgroundGradient]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.85, y: 1 }}
+        colors={[...baseGradient]}
+        locations={isDark ? [0, 0.25, 0.55, 0.8, 1] : undefined}
+        start={{ x: 0.05, y: 0 }}
+        end={{ x: 0.95, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
 
-      <GlowOrb
-        colors={
-          isDark
-            ? (['rgba(99,102,241,0.55)', 'rgba(99,102,241,0.08)', 'rgba(99,102,241,0)'] as const)
-            : (['rgba(129,140,248,0.45)', 'rgba(129,140,248,0.12)', 'rgba(255,255,255,0)'] as const)
-        }
-        style={styles.orbPrimary}
-      />
-      <GlowOrb
-        colors={
-          isDark
-            ? (['rgba(37,211,102,0.35)', 'rgba(37,211,102,0.06)', 'rgba(37,211,102,0)'] as const)
-            : (['rgba(37,211,102,0.28)', 'rgba(37,211,102,0.08)', 'rgba(255,255,255,0)'] as const)
-        }
-        style={styles.orbSecondary}
-      />
-      <GlowOrb
-        colors={
-          isDark
-            ? (['rgba(212,175,55,0.12)', 'rgba(212,175,55,0)', 'rgba(212,175,55,0)'] as const)
-            : (['rgba(212,175,55,0.15)', 'rgba(255,255,255,0)', 'rgba(255,255,255,0)'] as const)
-        }
-        style={styles.orbAccent}
-      />
+      {Platform.OS === 'web' ? (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.storyWeb,
+            webOnlyStyle({
+              background: story.css,
+              animation: 'meeting-pro-story-ambient 36s ease-in-out infinite alternate',
+              willChange: 'transform',
+            }),
+          ]}
+        />
+      ) : (
+        story.nativeWashes.map((wash, i) => (
+          <LinearGradient
+            key={i}
+            colors={[...wash.colors]}
+            start={wash.start}
+            end={wash.end}
+            style={[StyleSheet.absoluteFill, { opacity: wash.opacity }]}
+            pointerEvents="none"
+          />
+        ))
+      )}
 
-      <LinearGradient
-        colors={
-          isDark
-            ? ['rgba(10,22,40,0)', 'rgba(10,22,40,0.35)', 'rgba(5,10,20,0.65)']
-            : ['rgba(255,255,255,0)', 'rgba(238,242,255,0.2)', 'rgba(224,231,255,0.45)']
-        }
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={StyleSheet.absoluteFill}
+      <View
         pointerEvents="none"
+        style={[
+          styles.grain,
+          webOnlyStyle({
+            opacity: isDark ? LUMIQ_STORY.grainOpacity.dark : LUMIQ_STORY.grainOpacity.light,
+            backgroundImage: GRAIN_SVG,
+          }),
+        ]}
       />
 
-      <LinearGradient
-        colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0)', 'rgba(255,255,255,0)']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0.4 }}
-        style={styles.topSheen}
-        pointerEvents="none"
-      />
-
-      {children}
+      <View style={styles.content}>{children}</View>
     </View>
   );
 }
@@ -94,38 +98,22 @@ export function GlassBackground({ children, style }: GlassBackgroundProps) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: BRAND.navy,
+    backgroundColor: BRAND.black,
+    overflow: 'hidden',
   },
-  orb: {
+  storyWeb: {
     position: 'absolute',
-    borderRadius: 9999,
+    top: '-12%',
+    left: '-12%',
+    right: '-12%',
+    bottom: '-12%',
   },
-  orbPrimary: {
-    top: -120,
-    right: -100,
-    width: 340,
-    height: 340,
-    ...webOnlyStyle({ filter: 'blur(48px)' }),
+  grain: {
+    ...StyleSheet.absoluteFillObject,
   },
-  orbSecondary: {
-    bottom: 80,
-    left: -120,
-    width: 300,
-    height: 300,
-    ...webOnlyStyle({ filter: 'blur(40px)' }),
-  },
-  orbAccent: {
-    top: '38%',
-    right: -40,
-    width: 180,
-    height: 180,
-    ...webOnlyStyle({ filter: 'blur(32px)' }),
-  },
-  topSheen: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 180,
+  content: {
+    flex: 1,
+    minHeight: 0,
+    zIndex: 1,
   },
 });

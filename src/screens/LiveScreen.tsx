@@ -1,12 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, Pressable, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CompositeNavigationProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { GlassBackground } from '../components/GlassBackground';
-import { ContentColumn } from '../components/ContentColumn';
+import { TabScreenLayout } from '../components/TabScreenLayout';
 import { GlassCard } from '../components/GlassCard';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useTheme } from '../contexts/ThemeContext';
@@ -57,19 +55,14 @@ export function LiveScreen({ navigation }: Props) {
   const { calls, loading, error, reload } = useCallHistory();
 
   return (
-    <GlassBackground>
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={loading} onRefresh={reload} tintColor={palette.textMuted} />
-          }
-        >
-          <ContentColumn>
+    <TabScreenLayout
+      refreshControl={
+        <RefreshControl refreshing={loading} onRefresh={reload} tintColor={palette.textMuted} />
+      }
+    >
           <ScreenHeader
-            title="Calls"
-            subtitle="Calls on your WhatsApp Business number, newest first"
+            title="Call log"
+            subtitle="Answered, missed, and transcript status — newest first"
           />
 
           {calls.map((call) => {
@@ -143,20 +136,11 @@ export function LiveScreen({ navigation }: Props) {
             </GlassCard>
           )}
 
-          <View style={{ height: LAYOUT.tabBarClearance }} />
-          </ContentColumn>
-        </ScrollView>
-      </SafeAreaView>
-    </GlassBackground>
+    </TabScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  scroll: {
-    paddingHorizontal: LAYOUT.screenPaddingH,
-    paddingTop: LAYOUT.screenPaddingTop,
-  },
   card: { gap: 10, marginBottom: LAYOUT.itemGap },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   iconWrap: {

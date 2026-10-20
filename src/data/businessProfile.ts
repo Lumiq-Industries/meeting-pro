@@ -7,7 +7,7 @@
 // made-up masked number. Connection status is a fact about the account; it must
 // come from the account.
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { useSupabase } from '../contexts/SupabaseContext';
 import { DATA_SOURCE } from './transcriptSource';
 
 export interface WhatsAppNumber {
@@ -35,6 +35,7 @@ export function formatPhoneNumber(raw: string): string {
 }
 
 export function useBusinessProfile(): BusinessProfile {
+  const supabase = useSupabase();
   const [businessName, setBusinessName] = useState<string | null>(
     DATA_SOURCE === 'mock' ? 'Demo Business' : null
   );
@@ -86,7 +87,7 @@ export function useBusinessProfile(): BusinessProfile {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [supabase]);
 
   return { businessName, number, connected: number !== null, loading, error };
 }

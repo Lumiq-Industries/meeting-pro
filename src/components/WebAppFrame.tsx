@@ -1,8 +1,8 @@
 import React, { ReactNode, useEffect } from 'react';
 import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BRAND } from '../constants/theme';
+import { LUMIQ_CANVAS } from '../constants/glass';
 import { LAYOUT } from '../constants/layout';
+import { BRAND } from '../constants/theme';
 import { webOnlyStyle } from '../utils/webStyles';
 
 interface WebAppFrameProps {
@@ -10,8 +10,8 @@ interface WebAppFrameProps {
 }
 
 /**
- * On desktop web, the product reads as a centered device-style panel — not a
- * stretched full-bleed page. Native apps pass children through unchanged.
+ * Desktop web: centered work surface on black. Content panes stay corporate;
+ * liquid glass is reserved for the bottom tab bar inside the app.
  */
 export function WebAppFrame({ children }: WebAppFrameProps) {
   const { width, height } = useWindowDimensions();
@@ -22,7 +22,9 @@ export function WebAppFrame({ children }: WebAppFrameProps) {
     document.documentElement.style.height = '100%';
     document.body.style.height = '100%';
     document.body.style.margin = '0';
-    document.body.style.backgroundColor = '#030712';
+    document.body.style.overflow = 'auto';
+    document.documentElement.style.overflow = 'auto';
+    document.body.style.backgroundColor = LUMIQ_CANVAS.background;
     const root = document.getElementById('root');
     if (root) {
       root.style.height = '100%';
@@ -32,7 +34,7 @@ export function WebAppFrame({ children }: WebAppFrameProps) {
   }, []);
 
   if (!isDesktopWeb) {
-    return <View style={styles.nativeRoot}>{children}</View>;
+    return <View style={styles.appRoot}>{children}</View>;
   }
 
   const frameHeight = Math.min(height - 40, LAYOUT.maxFrameHeight);
@@ -40,15 +42,6 @@ export function WebAppFrame({ children }: WebAppFrameProps) {
 
   return (
     <View style={styles.desktopCanvas}>
-      <LinearGradient
-        colors={['#030712', '#0A1628', '#0F172A', '#030712']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={[styles.canvasOrbA, { opacity: 0.55 }]} />
-      <View style={[styles.canvasOrbB, { opacity: 0.45 }]} />
-
       <View
         style={[
           styles.frame,
@@ -59,15 +52,17 @@ export function WebAppFrame({ children }: WebAppFrameProps) {
           },
         ]}
       >
-        {children}
+        <View style={styles.appRoot}>{children}</View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  nativeRoot: {
+  appRoot: {
     flex: 1,
+    minHeight: 0,
+    width: '100%',
   },
   desktopCanvas: {
     flex: 1,
@@ -77,44 +72,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 20,
     paddingHorizontal: 24,
-  },
-  canvasOrbA: {
-    position: 'absolute',
-    top: '8%',
-    left: '12%',
-    width: 420,
-    height: 420,
-    borderRadius: 210,
-    backgroundColor: `${BRAND.accent}33`,
-    ...webOnlyStyle({ filter: 'blur(80px)' }),
-  },
-  canvasOrbB: {
-    position: 'absolute',
-    bottom: '6%',
-    right: '10%',
-    width: 360,
-    height: 360,
-    borderRadius: 180,
-    backgroundColor: `${BRAND.whatsapp}28`,
-    ...webOnlyStyle({ filter: 'blur(72px)' }),
+    backgroundColor: BRAND.black,
   },
   frame: {
     flex: 1,
     overflow: 'hidden',
-    borderRadius: 28,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: BRAND.gray950,
     ...webOnlyStyle({
-      boxShadow: '0 32px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06) inset',
+      boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
     }),
-    ...(Platform.OS !== 'web'
-      ? {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 24 },
-          shadowOpacity: 0.35,
-          shadowRadius: 48,
-          elevation: 16,
-        }
-      : null),
   },
 });

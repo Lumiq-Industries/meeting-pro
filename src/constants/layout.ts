@@ -17,7 +17,12 @@ export const LAYOUT = {
   blockGap: 16,
   itemGap: 12,
   cardGap: 14,
-  tabBarClearance: 108,
+  /** Space reserved above the floating tab bar (bar + margins). */
+  tabBarClearance: 132,
+  /** Extra breathing room after last scroll item. */
+  scrollExtraBottom: 20,
+  /** Stack screens without tab bar. */
+  stackBottomClearance: 40,
   headerBottom: 20,
 };
 

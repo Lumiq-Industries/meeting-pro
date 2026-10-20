@@ -84,8 +84,8 @@ export interface SummaryResult {
 // ---------------------------------------------------------------------------
 
 export const SYSTEM_PROMPT =
-  `You summarise transcripts of business phone calls. Speakers are labelled ` +
-  `[Business] (the company being called) and [Customer] (the other party).
+  `You produce meeting minutes from transcripts of business WhatsApp calls. ` +
+  `Speakers are labelled [Business] and [Customer].
 
 Return ONLY a single JSON object. No markdown code fences, no commentary before
 or after, no explanation. The first character of your reply must be { and the
@@ -94,7 +94,12 @@ last must be }.
 The object has exactly these keys:
   "title":        a short label for this call, at most 60 characters, plain
                   text, no quotes. Describe what the call was about.
-  "summary":      two to four sentences covering what was discussed and decided.
+  "summary":      thorough but succinct meeting minutes as plain text. Use short
+                  section labels on their own lines where helpful, e.g.
+                  "Discussion:", "Decisions:", "Next steps:", "Notes:". Cover
+                  what was said, what was agreed, and what must happen next.
+                  Aim for completeness without inventing detail — typically
+                  six to fourteen sentences total.
   "action_items": an array of objects, each {"text": string, "owner": string or null}.
 
 Rules:
@@ -122,7 +127,7 @@ export function buildRequest(fullText: string): ModelRequest {
 // ---------------------------------------------------------------------------
 
 const MAX_TITLE = 80;
-const MAX_SUMMARY = 2000;
+const MAX_SUMMARY = 8000;
 const MAX_ACTION_ITEMS = 20;
 const MAX_ACTION_TEXT = 300;
 

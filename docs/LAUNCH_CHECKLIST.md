@@ -3,17 +3,22 @@
 ## Already built (Banky backend + app)
 
 - Supabase schema, RLS, webhook receiver (`whatsapp-webhook`), retry and summarize functions
-- App: sign-in, Home, Archive, Calls, transcript detail, WhatsApp status from database
+- App: sign-in, Home, **Contacts**, Archive, Calls, transcript detail, WhatsApp status, **email minutes prefs** in Settings
+- Edge: `send-meeting-minutes` (Resend) after `summarize-transcript` completes
 - **Calls are not recorded on the phone.** Meta WhatsApp Cloud API transcribes on their servers after each call; webhooks store rows in Supabase; the app reads them.
 
-## 1. App environment (every developer)
+## 1. Clerk + app environment (every developer)
+
+See [CLERK_SETUP.md](./CLERK_SETUP.md). Visual standard: [BULLETIC_GLASS.md](./BULLETIC_GLASS.md).
+
 
 ```bash
 cp .env.example .env
 ```
 
-Fill from Supabase **meeting-pro-dev** (project ref `duurebydckodwznnmwoc`) or production:
+Fill from Clerk + Supabase **meeting-pro-dev** (project ref `duurebydckodwznnmwoc`) or production:
 
+- `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`
 - `EXPO_PUBLIC_SUPABASE_URL`
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 - `EXPO_PUBLIC_DATA_SOURCE=supabase`
@@ -36,7 +41,15 @@ Restart: `npx expo start --clear`
    supabase functions deploy whatsapp-webhook --no-verify-jwt
    supabase functions deploy retry-transcript
    supabase functions deploy summarize-transcript
+   supabase functions deploy send-meeting-minutes --no-verify-jwt
    ```
+
+   Email secrets (same project):
+
+   - `RESEND_API_KEY`
+   - `MEETING_MINUTES_FROM` (e.g. `Meeting Pro <minutes@yourdomain.com>`)
+   - Optional `MEETING_MINUTES_HOOK_SECRET` (must match what `summarize-transcript` sends)
+   - `ANTHROPIC_API_KEY` (meeting-minutes-style summary)
 
 6. Register the phone number in `whatsapp_numbers` for the business (admin / SQL — no in-app flow yet).
 
@@ -66,7 +79,7 @@ Deploy the `dist/` folder to Vercel/Netlify. Set the same `EXPO_PUBLIC_*` vars i
 
 4. App Review notes: app **does not record** WhatsApp audio; it displays transcripts delivered by WhatsApp Business Cloud API for registered business numbers.
 
-## 5. Apply new migration (realtime)
+## 5. Apply migrations (realtime + contacts + email prefs)
 
 If not yet on dev/prod:
 
@@ -74,4 +87,10 @@ If not yet on dev/prod:
 supabase db push
 ```
 
-Adds `calls` and `transcripts` to Realtime so the Calls tab updates when webhooks land.
+Includes:
+
+- Realtime on `calls` / `transcripts`
+- `business_contacts` table
+- `business_members.email_minutes_enabled` / `meeting_minutes_email`
+
+See also [VISION_AND_WHATSAPP.md](./VISION_AND_WHATSAPP.md) (personal WhatsApp vs Business API).

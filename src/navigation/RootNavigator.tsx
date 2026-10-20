@@ -5,6 +5,7 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { LiveScreen } from '../screens/LiveScreen';
 import { ArchiveScreen } from '../screens/ArchiveScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { ContactsScreen } from '../screens/ContactsScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { TranscriptDetailScreen } from '../screens/TranscriptDetailScreen';
 import { WhatsAppConnectScreen } from '../screens/WhatsAppConnectScreen';
@@ -21,6 +22,7 @@ function MainTabs() {
       screenOptions={{ headerShown: false }}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Contacts" component={ContactsScreen} />
       <Tab.Screen name="Live" component={LiveScreen} />
       <Tab.Screen name="Archive" component={ArchiveScreen} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
@@ -30,9 +32,12 @@ function MainTabs() {
 
 export function RootNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+    <Stack.Navigator
+      screenOptions={{ headerShown: false }}
+      initialRouteName="Main"
+    >
       <Stack.Screen name="Main" component={MainTabs} />
+      <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen
         name="TranscriptDetail"
         component={TranscriptDetailScreen}

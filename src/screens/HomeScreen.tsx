@@ -1,24 +1,25 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, Pressable, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CompositeNavigationProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { LinearGradient } from 'expo-linear-gradient';
-import { GlassBackground } from '../components/GlassBackground';
 import { GlassCard } from '../components/GlassCard';
-import { ContentColumn } from '../components/ContentColumn';
-import { TranscriptCard } from '../components/TranscriptCard';
+import { MeetingProMark } from '../components/MeetingProMark';
+import { TabScreenLayout } from '../components/TabScreenLayout';
 import { ScreenHeader, SectionHeader } from '../components/ScreenHeader';
+import { StackedBarChart } from '../components/charts/StackedBarChart';
+import { ContactAnswerBars } from '../components/charts/ContactAnswerBars';
+import { RingGauge } from '../components/charts/RingGauge';
 import { useTheme } from '../contexts/ThemeContext';
-import { COLORS, FONT, RADIUS, BRAND, ThemePalette } from '../constants/theme';
+import { COLORS, FONT, RADIUS, BRAND, CHART, SPACING, ThemePalette } from '../constants/theme';
 import { LAYOUT } from '../constants/layout';
-import { FEATURE_HIGHLIGHTS, NO_VALUE } from '../constants/content';
-import { useTranscripts } from '../data/transcriptSource';
-import { useDashboardStats, formatHours } from '../data/dashboardStats';
+import { NO_VALUE } from '../constants/content';
+import { useCallAnalytics } from '../data/callAnalytics';
+import { useDashboardStats } from '../data/dashboardStats';
+import { formatCallDuration } from '../data/callHistory';
 import { MainTabParamList, RootStackParamList } from '../types';
-import { getDeviceLabel, getGlassVariant, supportsLiquidGlass } from '../utils/platform';
+import { DATA_SOURCE } from '../data/transcriptSource';
 
 type HomeNav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Home'>,
@@ -30,243 +31,394 @@ type Props = { navigation: HomeNav };
 export function HomeScreen({ navigation }: Props) {
   const { effectiveTheme } = useTheme();
   const palette = COLORS[effectiveTheme];
-  const { transcripts, loading: transcriptsLoading } = useTranscripts();
-  const stats = useDashboardStats();
-  const recent = transcripts.slice(0, 3);
-  const variant = getGlassVariant();
+  const analytics = useCallAnalytics();
+  const dashboard = useDashboardStats();
+
+  const onRefresh = () => {
+    dashboard.reload();
+  };
+
+  const answerPct =
+    analytics.answerRate != null ? `${Math.round(analytics.answerRate * 100)}%` : NO_VALUE;
+  const outcomePct =
+    analytics.outcomeRate != null ? `${Math.round(analytics.outcomeRate * 100)}%` : NO_VALUE;
 
   return (
-    <GlassBackground>
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
-        >
-          <ContentColumn>
-          <ScreenHeader
-            badge="Lumiq Industries"
-            title="Meeting Pro"
-            subtitle="Searchable transcripts of your WhatsApp Business calls"
-            rightAction={{
-              icon: 'logo-whatsapp',
-              onPress: () => navigation.navigate('WhatsAppConnect'),
-              color: BRAND.whatsapp,
-            }}
-          />
-
-          {/* Not a call-to-action: there is nothing to start. Transcription
-              happens on Meta's servers after a call ends. This explains that
-              rather than offering a button that cannot do anything. */}
-          <Pressable onPress={() => navigation.navigate('Live')}>
-            <View style={styles.heroOuter}>
-              <LinearGradient
-                colors={['#128C7E', '#075E54', '#0A1628']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.heroGradient}
-              >
-                <View style={styles.heroInner}>
-                  <View style={styles.heroIconWrap}>
-                    <Ionicons name="videocam" size={28} color="#FFF" />
-                  </View>
-                  <View style={styles.heroText}>
-                    <Text style={styles.heroTitle}>Transcription is automatic</Text>
-                    <Text style={styles.heroSub}>
-                      Calls are transcribed after they end — nothing to start
-                    </Text>
-                  </View>
-                  <Ionicons name="arrow-forward-circle" size={32} color="#FFF" />
-                </View>
-              </LinearGradient>
-            </View>
-          </Pressable>
-
-          <GlassCard style={styles.deviceBanner}>
-            <View style={styles.deviceRow}>
-              <Ionicons
-                name={supportsLiquidGlass() ? 'color-wand' : 'phone-portrait-outline'}
-                size={18}
-                color={BRAND.accent}
-              />
-              <Text style={[styles.deviceText, { color: palette.textSecondary }]}>
-                {getDeviceLabel()}
-                {variant === 'liquid' ? ' · Liquid Glass UI' : ''}
-              </Text>
-            </View>
-          </GlassCard>
-
-          <View style={styles.statsGrid}>
-            <StatCard
-              label="Sessions"
-              value={stats.loading || stats.sessions === null ? NO_VALUE : String(stats.sessions)}
-              icon="document-text"
-              palette={palette}
+    <TabScreenLayout
+      refreshControl={
+        <RefreshControl
+          refreshing={analytics.loading}
+          onRefresh={onRefresh}
+          tintColor={palette.textMuted}
+        />
+      }
+    >
+            <ScreenHeader
+              badge="Meeting Pro"
+              title="Dashboard"
+              subtitle="WhatsApp Business call minutes and shared records"
+              rightAction={{
+                icon: 'link-outline',
+                onPress: () => navigation.navigate('WhatsAppConnect'),
+                color: BRAND.qualityBlue,
+              }}
             />
-            <StatCard
-              label="Hours"
-              value={stats.loading ? NO_VALUE : formatHours(stats.hours) ?? NO_VALUE}
-              icon="time"
+
+            <WhatsAppStatusCard
               palette={palette}
+              connected={dashboard.whatsappConnected}
+              onPress={() => navigation.navigate('WhatsAppConnect')}
             />
-            <StatCard
-              label="Actions"
-              value={
-                stats.loading || stats.actionItemsOpen === null
-                  ? NO_VALUE
-                  : String(stats.actionItemsOpen)
-              }
-              icon="checkbox"
-              palette={palette}
-            />
-          </View>
 
-
-          <SectionHeader title="Quick actions" />
-          <View style={styles.actionsRow}>
-            {/* Every one of these goes somewhere that exists. "Voice note" and
-                "Live call" used to sit here as if you could start either. */}
-            <QuickAction icon="call" label="Calls" color={BRAND.accent} palette={palette} onPress={() => navigation.navigate('Live')} />
-            <QuickAction icon="search" label="Archive" color={BRAND.gold} palette={palette} onPress={() => navigation.navigate('Archive')} />
-            <QuickAction icon="logo-whatsapp" label="WhatsApp" color={BRAND.whatsapp} palette={palette} onPress={() => navigation.navigate('WhatsAppConnect')} />
-          </View>
-
-          <SectionHeader
-            title="Recent transcripts"
-            actionLabel="See all"
-            onAction={() => navigation.navigate('Archive')}
-          />
-          <View style={styles.listBlock}>
-            {recent.map((t) => (
-              <TranscriptCard
-                key={t.id}
-                transcript={t}
-                onPress={() => navigation.navigate('TranscriptDetail', { transcriptId: t.id })}
-              />
-            ))}
-            {recent.length === 0 && (
-              <GlassCard style={styles.emptyCard}>
-                <Ionicons
-                  name={transcriptsLoading ? 'time-outline' : 'chatbubbles-outline'}
-                  size={24}
-                  color={palette.textMuted}
+            <GlassCard style={styles.gaugeCard}>
+              <View style={styles.gaugeRow}>
+                <RingGauge
+                  value={analytics.answerRate}
+                  label="Answer rate"
+                  sublabel="Trust · pick-up"
+                  color={CHART.answered}
                 />
-                <Text style={[styles.emptyTitle, { color: palette.text }]}>
-                  {transcriptsLoading ? 'Loading…' : 'No calls yet'}
-                </Text>
-                {!transcriptsLoading && (
-                  <Text style={[styles.emptyBody, { color: palette.textSecondary }]}>
-                    {stats.whatsappConnected === false
-                      ? 'No WhatsApp Business number is connected yet, so there is nothing to transcribe.'
-                      : 'Transcripts appear here after a call on your WhatsApp Business number. WhatsApp transcribes the call and sends it through once the call ends.'}
-                  </Text>
-                )}
-              </GlassCard>
-            )}
-          </View>
+                <RingGauge
+                  value={analytics.outcomeRate}
+                  label="Positive outcomes"
+                  sublabel="Quality · AI"
+                  color={CHART.accent}
+                />
+              </View>
+            </GlassCard>
 
-          <SectionHeader title="What's included" />
-          <View style={styles.listBlock}>
-            {FEATURE_HIGHLIGHTS.map((f) => (
-              <GlassCard key={f.title} style={styles.featureCard}>
-                <View style={styles.featureRow}>
-                  <View style={[styles.featureIcon, { backgroundColor: `${BRAND.accent}18` }]}>
-                    <Ionicons name={f.icon} size={20} color={BRAND.accent} />
-                  </View>
-                  <View style={styles.featureText}>
-                    <Text style={[styles.featureTitle, { color: palette.text }]}>{f.title}</Text>
-                    <Text style={[styles.featureDesc, { color: palette.textSecondary }]}>{f.description}</Text>
-                  </View>
+            <View style={styles.metricGrid}>
+              <MetricTile
+                label="Total calls"
+                value={analytics.loading ? NO_VALUE : String(analytics.totalCalls)}
+                hint="All logged calls"
+                icon="call"
+                palette={palette}
+              />
+              <MetricTile
+                label="Answered"
+                value={analytics.loading ? NO_VALUE : String(analytics.answered)}
+                hint={`Pick-up ${answerPct}`}
+                icon="checkmark-circle"
+                palette={palette}
+                accent={BRAND.trustGreen}
+              />
+              <MetricTile
+                label="Missed / busy"
+                value={analytics.loading ? NO_VALUE : String(analytics.missed)}
+                hint="No transcript"
+                icon="close-circle"
+                palette={palette}
+                accent={BRAND.gray500}
+              />
+              <MetricTile
+                label="Avg duration"
+                value={analytics.loading ? NO_VALUE : analytics.avgDurationLabel}
+                hint="Connected calls"
+                icon="time"
+                palette={palette}
+              />
+            </View>
+
+            <View style={styles.metricRow2}>
+              <MetricTile
+                label="Minutes emailed"
+                value={
+                  analytics.minutesEmailed != null ? String(analytics.minutesEmailed) : NO_VALUE
+                }
+                hint="Transcripts ready"
+                icon="mail"
+                palette={palette}
+                wide
+              />
+              <MetricTile
+                label="Positive outcomes"
+                value={
+                  analytics.positiveOutcomes != null
+                    ? String(analytics.positiveOutcomes)
+                    : DATA_SOURCE === 'supabase'
+                      ? 'AI pending'
+                      : NO_VALUE
+                }
+                hint={
+                  DATA_SOURCE === 'mock'
+                    ? `${outcomePct} of scored calls`
+                    : 'After AI summary runs'
+                }
+                icon="trending-up"
+                palette={palette}
+                wide
+              />
+            </View>
+
+            {analytics.medianTimeToTranscriptMinutes != null ? (
+              <GlassCard style={styles.speedCard}>
+                <Ionicons name="flash" size={20} color={BRAND.qualityBlueLight} />
+                <View style={styles.speedBody}>
+                  <Text style={[styles.speedTitle, { color: palette.text }]}>
+                    ~{analytics.medianTimeToTranscriptMinutes.toFixed(1)} min to transcript
+                  </Text>
+                  <Text style={[styles.speedSub, { color: palette.textSecondary }]}>
+                    Typical time from call end to minutes in your inbox
+                  </Text>
                 </View>
               </GlassCard>
-            ))}
-          </View>
+            ) : null}
 
-          <View style={{ height: LAYOUT.tabBarClearance }} />
-          </ContentColumn>
-        </ScrollView>
-      </SafeAreaView>
-    </GlassBackground>
+            <SectionHeader title="Call volume (7 days)" />
+            <GlassCard style={styles.chartCard}>
+              <StackedBarChart data={analytics.volumeByDay} />
+            </GlassCard>
+
+            <SectionHeader
+              title="Contacts & answer rate"
+              actionLabel="All contacts"
+              onAction={() => navigation.navigate('Contacts')}
+            />
+            <GlassCard style={styles.chartCard}>
+              <ContactAnswerBars contacts={analytics.contactStats} />
+            </GlassCard>
+
+            <SectionHeader
+              title="Recent calls"
+              actionLabel="View all"
+              onAction={() => navigation.navigate('Live')}
+            />
+            <View style={styles.listBlock}>
+              {analytics.recentCalls.length === 0 && !analytics.loading ? (
+                <GlassCard style={styles.emptyCard}>
+                  <Text style={[styles.emptyTitle, { color: palette.text }]}>
+                    No calls logged yet
+                  </Text>
+                  <Text style={[styles.emptyBody, { color: palette.textSecondary }]}>
+                    When someone calls your linked WhatsApp Business line, the call appears here.
+                    After the call ends, Meeting Pro transcribes it and emails you minutes.
+                  </Text>
+                </GlassCard>
+              ) : (
+                analytics.recentCalls.map((call) => (
+                  <Pressable
+                    key={call.id}
+                    onPress={() =>
+                      call.transcriptId
+                        ? navigation.navigate('TranscriptDetail', { transcriptId: call.transcriptId })
+                        : navigation.navigate('Live')
+                    }
+                  >
+                    <GlassCard style={styles.callRow}>
+                      <View style={styles.callIcon}>
+                        <Ionicons
+                          name={call.durationSeconds ? 'call' : 'call-outline'}
+                          size={18}
+                          color={call.durationSeconds ? BRAND.whatsapp : palette.textMuted}
+                        />
+                      </View>
+                      <View style={styles.callBody}>
+                        <Text style={[styles.callTitle, { color: palette.text }]} numberOfLines={1}>
+                          {call.transcriptTitle ?? call.counterparty ?? 'Unknown caller'}
+                        </Text>
+                        <Text style={[styles.callMeta, { color: palette.textMuted }]}>
+                          {formatCallDuration(call.durationSeconds)} ·{' '}
+                          {call.transcriptState === 'ready'
+                            ? 'Minutes ready'
+                            : call.transcriptState === 'failed'
+                              ? 'Transcript failed'
+                              : 'Processing'}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={18} color={palette.textMuted} />
+                    </GlassCard>
+                  </Pressable>
+                ))
+              )}
+            </View>
+
+            <GlassCard style={styles.workflowCard}>
+              <Text style={[styles.workflowTitle, { color: palette.text }]}>How it works</Text>
+              <WorkflowStep
+                n={1}
+                text="Add business contacts you call on WhatsApp"
+                palette={palette}
+              />
+              <WorkflowStep
+                n={2}
+                text="Calls on your Business line auto-transcribe when they end"
+                palette={palette}
+              />
+              <WorkflowStep
+                n={3}
+                text="AI meeting minutes email to your account — share with clients"
+                palette={palette}
+              />
+            </GlassCard>
+    </TabScreenLayout>
   );
 }
 
-function StatCard({ label, value, icon, palette }: { label: string; value: string; icon: keyof typeof Ionicons.glyphMap; palette: ThemePalette }) {
+function WhatsAppStatusCard({
+  palette,
+  connected,
+  onPress,
+}: {
+  palette: ThemePalette;
+  connected: boolean | null;
+  onPress: () => void;
+}) {
+  const label =
+    connected === true
+      ? 'WhatsApp Business connected'
+      : connected === false
+        ? 'Connect WhatsApp Business'
+        : 'Checking WhatsApp…';
+  const sub =
+    connected === true
+      ? 'Calls transcribe automatically after each conversation ends'
+      : 'Link your Business number to start call minutes';
+
   return (
-    <GlassCard style={styles.statCard}>
-      <Ionicons name={icon} size={18} color={BRAND.accent} />
-      <Text style={[styles.statValue, { color: palette.text }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: palette.textMuted }]}>{label}</Text>
+    <GlassCard onPress={onPress} style={styles.statusCard}>
+      <View style={styles.statusRow}>
+        <View style={[styles.statusIcon, { backgroundColor: `${BRAND.accent}18` }]}>
+          <MeetingProMark size={36} />
+        </View>
+        <View style={styles.statusBody}>
+          <Text style={[styles.statusTitle, { color: palette.text }]}>{label}</Text>
+          <Text style={[styles.statusSub, { color: palette.textSecondary }]}>{sub}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={palette.textMuted} />
+      </View>
     </GlassCard>
   );
 }
 
-function QuickAction({ icon, label, color, palette, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; color: string; palette: ThemePalette; onPress: () => void }) {
+function MetricTile({
+  label,
+  value,
+  hint,
+  icon,
+  palette,
+  accent,
+  wide,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  palette: ThemePalette;
+  accent?: string;
+  wide?: boolean;
+}) {
   return (
-    <Pressable onPress={onPress} style={styles.actionItem}>
-      <GlassCard noPadding style={styles.actionCard}>
-        <View style={[styles.actionInner, { backgroundColor: `${color}18` }]}>
-          <Ionicons name={icon} size={26} color={color} />
-        </View>
-      </GlassCard>
-      <Text style={[styles.actionLabel, { color: palette.textSecondary }]}>{label}</Text>
-    </Pressable>
+    <GlassCard style={[styles.metricTile, wide && styles.metricTileWide]}>
+      <Ionicons name={icon} size={18} color={accent ?? BRAND.accent} />
+      <Text style={[styles.metricValue, { color: palette.text }]}>{value}</Text>
+      <Text style={[styles.metricLabel, { color: palette.text }]}>{label}</Text>
+      <Text style={[styles.metricHint, { color: palette.textMuted }]}>{hint}</Text>
+    </GlassCard>
+  );
+}
+
+function WorkflowStep({
+  n,
+  text,
+  palette,
+}: {
+  n: number;
+  text: string;
+  palette: ThemePalette;
+}) {
+  return (
+    <View style={styles.stepRow}>
+      <View style={styles.stepBadge}>
+        <Text style={styles.stepNum}>{n}</Text>
+      </View>
+      <Text style={[styles.stepText, { color: palette.textSecondary }]}>{text}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  scroll: {
-    paddingHorizontal: LAYOUT.screenPaddingH,
-    paddingTop: LAYOUT.screenPaddingTop,
+  statusCard: { marginBottom: LAYOUT.blockGap },
+  gaugeCard: { marginBottom: LAYOUT.blockGap, paddingVertical: 8 },
+  gaugeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'flex-start',
+    gap: SPACING.md,
   },
-  heroOuter: {
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  statusIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: RADIUS.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusBody: { flex: 1 },
+  statusTitle: { fontSize: FONT.base, fontWeight: '700' },
+  statusSub: { fontSize: FONT.sm, marginTop: 4, lineHeight: 18 },
+  metricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: LAYOUT.itemGap,
+    marginBottom: LAYOUT.itemGap,
+  },
+  metricRow2: {
+    flexDirection: 'row',
+    gap: LAYOUT.itemGap,
     marginBottom: LAYOUT.blockGap,
-    borderRadius: RADIUS.lg,
-    overflow: 'hidden',
   },
-  heroGradient: {
-    padding: 20,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+  metricTile: {
+    width: '48%',
+    flexGrow: 1,
+    flexBasis: '46%',
+    gap: 4,
+    paddingVertical: 14,
   },
-  heroInner: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  heroIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  metricTileWide: {
+    flex: 1,
+    flexBasis: '46%',
+  },
+  metricValue: { fontSize: FONT.xl, fontWeight: '800', marginTop: 4 },
+  metricLabel: { fontSize: FONT.sm, fontWeight: '700' },
+  metricHint: { fontSize: FONT.xs, lineHeight: 16 },
+  speedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: LAYOUT.blockGap,
+  },
+  speedBody: { flex: 1 },
+  speedTitle: { fontSize: FONT.base, fontWeight: '700' },
+  speedSub: { fontSize: FONT.sm, marginTop: 2, lineHeight: 18 },
+  chartCard: { marginBottom: LAYOUT.blockGap, alignItems: 'center', paddingVertical: 16 },
+  listBlock: { gap: LAYOUT.cardGap, marginBottom: LAYOUT.blockGap },
+  callRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  callIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.sm,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroText: { flex: 1 },
-  heroTitle: { fontSize: FONT.lg, fontWeight: '700', color: '#FFF' },
-  heroSub: { fontSize: FONT.sm, color: 'rgba(255,255,255,0.65)', marginTop: 4, lineHeight: 18 },
-  deviceBanner: { marginBottom: LAYOUT.blockGap },
-  deviceRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  deviceText: { fontSize: FONT.sm, flex: 1, lineHeight: 18 },
-  statsGrid: { flexDirection: 'row', gap: LAYOUT.itemGap, marginBottom: LAYOUT.blockGap },
-  emptyCard: { alignItems: 'center', gap: 8, paddingVertical: 24 },
-  emptyTitle: { fontSize: FONT.base, fontWeight: '700' },
+  callBody: { flex: 1, minWidth: 0 },
+  callTitle: { fontSize: FONT.sm, fontWeight: '700' },
+  callMeta: { fontSize: FONT.xs, marginTop: 2 },
+  emptyCard: { gap: 8, paddingVertical: 20 },
+  emptyTitle: { fontSize: FONT.base, fontWeight: '700', textAlign: 'center' },
   emptyBody: { fontSize: FONT.sm, textAlign: 'center', lineHeight: 20 },
-  statCard: { flex: 1, alignItems: 'center', gap: 6, paddingVertical: 18 },
-  statValue: { fontSize: FONT.xl, fontWeight: '800' },
-  statLabel: { fontSize: FONT.xs, fontWeight: '500' },
-  actionsRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: LAYOUT.blockGap },
-  actionItem: { alignItems: 'center', gap: 8, flex: 1 },
-  actionCard: { borderRadius: RADIUS.lg },
-  actionInner: {
-    width: 72,
-    height: 72,
-    borderRadius: RADIUS.lg,
+  workflowCard: { gap: SPACING.md, marginBottom: LAYOUT.blockGap },
+  workflowTitle: { fontSize: FONT.base, fontWeight: '800' },
+  stepRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  stepBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(59, 130, 246, 0.28)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionLabel: { fontSize: FONT.sm, fontWeight: '600', textAlign: 'center' },
-  listBlock: { gap: LAYOUT.cardGap },
-  featureCard: {},
-  featureRow: { flexDirection: 'row', gap: 16, alignItems: 'center' },
-  featureIcon: { width: 48, height: 48, borderRadius: RADIUS.sm, alignItems: 'center', justifyContent: 'center' },
-  featureText: { flex: 1 },
-  featureTitle: { fontSize: FONT.base, fontWeight: '700' },
-  featureDesc: { fontSize: FONT.sm, marginTop: 4, lineHeight: 20 },
+  stepNum: { color: '#E0E7FF', fontSize: FONT.sm, fontWeight: '800' },
+  stepText: { flex: 1, fontSize: FONT.sm, lineHeight: 20 },
 });

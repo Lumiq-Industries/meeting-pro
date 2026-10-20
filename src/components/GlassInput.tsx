@@ -9,10 +9,8 @@ import {
   Pressable,
   Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
-import { COLORS, FONT, RADIUS, SPACING } from '../constants/theme';
-import { webOnlyStyle } from '../utils/webStyles';
+import { COLORS, FONT, RADIUS, SPACING, BRAND } from '../constants/theme';
 
 interface GlassInputProps extends TextInputProps {
   label?: string;
@@ -44,22 +42,11 @@ export function GlassInput({
         style={[
           styles.field,
           {
-            borderColor: palette.glassBorder,
-            backgroundColor: palette.glassFill,
+            borderColor: effectiveTheme === 'dark' ? 'rgba(255,255,255,0.1)' : palette.glassBorder,
+            backgroundColor: effectiveTheme === 'dark' ? BRAND.gray900 : palette.glassFill,
           },
-          webOnlyStyle({
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-          }),
         ]}
       >
-        <LinearGradient
-          colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.04)', 'rgba(255,255,255,0)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        />
         <TextInput
           placeholderTextColor={palette.textMuted}
           style={[

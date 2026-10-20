@@ -6,12 +6,10 @@ import {
   ScrollView,
   Pressable,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { CompositeNavigationProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { GlassBackground } from '../components/GlassBackground';
-import { ContentColumn } from '../components/ContentColumn';
+import { TabScreenLayout } from '../components/TabScreenLayout';
 import { SearchBar } from '../components/SearchBar';
 import { TranscriptCard } from '../components/TranscriptCard';
 import { ScreenHeader } from '../components/ScreenHeader';
@@ -62,17 +60,10 @@ export function ArchiveScreen({ navigation }: Props) {
   }, [transcripts, matchIds, query, filter]);
 
   return (
-    <GlassBackground>
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <ContentColumn>
+    <TabScreenLayout>
           <ScreenHeader
-            title="Archive"
-            subtitle="Every call transcript, searchable"
+            title="Meeting minutes"
+            subtitle="Searchable transcripts and AI summaries to share"
           />
 
           <SearchBar value={query} onChangeText={setQuery} />
@@ -141,20 +132,11 @@ export function ArchiveScreen({ navigation }: Props) {
             </View>
           )}
 
-          <View style={{ height: LAYOUT.tabBarClearance }} />
-          </ContentColumn>
-        </ScrollView>
-      </SafeAreaView>
-    </GlassBackground>
+    </TabScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  scroll: {
-    paddingHorizontal: LAYOUT.screenPaddingH,
-    paddingTop: LAYOUT.screenPaddingTop,
-  },
   filters: { gap: 8, paddingVertical: 16 },
   filterChip: {
     paddingHorizontal: 14,

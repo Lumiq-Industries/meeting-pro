@@ -15,7 +15,7 @@ const STORAGE_KEY = 'meetingpro_theme';
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const systemColorScheme = useColorScheme();
-  const [theme, setThemeState] = useState<Theme>('system');
+  const [theme, setThemeState] = useState<Theme>('dark');
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
@@ -35,7 +35,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   };
 
   const effectiveTheme =
-    theme === 'system' ? (systemColorScheme || 'light') : theme;
+    theme === 'system' ? (systemColorScheme || 'dark') : theme;
 
   return (
     <ThemeContext.Provider value={{ theme, effectiveTheme, setTheme }}>

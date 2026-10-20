@@ -2,7 +2,7 @@ import React, { ReactNode } from 'react';
 import { View, Text, StyleSheet, Pressable, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
-import { COLORS, FONT } from '../constants/theme';
+import { COLORS, FONT, BRAND } from '../constants/theme';
 import { LAYOUT } from '../constants/layout';
 
 interface ScreenHeaderProps {
@@ -91,19 +91,19 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: FONT.xs,
     fontWeight: '600',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
   title: {
-    fontSize: FONT.hero,
-    fontWeight: '800',
-    letterSpacing: -0.8,
-    lineHeight: 40,
+    fontSize: FONT.xxl,
+    fontWeight: '700',
+    letterSpacing: -0.4,
+    lineHeight: 32,
   },
   subtitle: {
-    fontSize: FONT.base,
-    lineHeight: 22,
-    marginTop: 6,
+    fontSize: FONT.sm,
+    lineHeight: 20,
+    marginTop: 4,
     maxWidth: '95%',
   },
   actionBtn: {
@@ -121,13 +121,14 @@ const styles = StyleSheet.create({
     marginTop: LAYOUT.sectionGap,
   },
   sectionTitle: {
-    fontSize: FONT.lg,
+    fontSize: FONT.sm,
     fontWeight: '700',
-    letterSpacing: -0.2,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   sectionAction: {
     fontSize: FONT.sm,
     fontWeight: '600',
-    color: '#6366F1',
+    color: BRAND.qualityBlue,
   },
 });

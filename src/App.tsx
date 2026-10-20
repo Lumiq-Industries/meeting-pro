@@ -1,21 +1,44 @@
 import React, { useState, useCallback } from 'react';
-import { StatusBar } from 'react-native';
+import { Platform, StatusBar } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
+import { ClerkProvider, ClerkLoaded } from '@clerk/clerk-expo';
+import { tokenCache } from '@clerk/clerk-expo/token-cache';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { SupabaseProvider } from './contexts/SupabaseContext';
 import { RootNavigator } from './navigation/RootNavigator';
 import { LoadingScreen } from './screens/LoadingScreen';
 import { SignInScreen } from './screens/SignInScreen';
 import { WebAppFrame } from './components/WebAppFrame';
+import { getClerkPublishableKey } from './lib/clerkEnv';
+import { clerkAppOrigin } from './lib/clerkRedirectUrls';
+import { meetingProClerkLocalization } from './lib/clerkLocalization';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
+const clerkPublishableKey = getClerkPublishableKey();
+if (!clerkPublishableKey) {
+  throw new Error(
+    'Clerk is not configured: set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY (or NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY on Vercel) in .env — see .env.example.'
+  );
+}
+
+/** Web: tell Clerk where the SPA lives (Vercel), not clerk.accounts.dev. */
+const clerkWebRedirects =
+  Platform.OS === 'web'
+    ? {
+        signInFallbackRedirectUrl: `${clerkAppOrigin()}/`,
+        signUpFallbackRedirectUrl: `${clerkAppOrigin()}/`,
+        afterSignOutUrl: `${clerkAppOrigin()}/`,
+      }
+    : {};
+
 function AppContent() {
   const { effectiveTheme } = useTheme();
-  const { session, initializing } = useAuth();
+  const { isSignedIn, initializing } = useAuth();
   const [booting, setBooting] = useState(true);
 
   const handleLoadFinish = useCallback(() => {
@@ -23,9 +46,6 @@ function AppContent() {
     setBooting(false);
   }, []);
 
-  // Keep the loading screen up until both the intro animation has finished and
-  // the persisted session has been read, so a signed-in user never sees a flash
-  // of the sign-in screen.
   if (booting || initializing) {
     return (
       <>
@@ -37,9 +57,7 @@ function AppContent() {
 
   const barStyle = effectiveTheme === 'dark' ? 'light-content' : 'dark-content';
 
-  // No session: sign-in only. Nothing behind it is reachable, which matches the
-  // database — the anon role can read no table at all.
-  if (!session) {
+  if (!isSignedIn) {
     return (
       <>
         <StatusBar barStyle={barStyle} />
@@ -51,24 +69,35 @@ function AppContent() {
   return (
     <>
       <StatusBar barStyle={barStyle} />
-      <NavigationContainer>
-        <RootNavigator />
-      </NavigationContainer>
+      <SupabaseProvider>
+        <NavigationContainer>
+          <RootNavigator />
+        </NavigationContainer>
+      </SupabaseProvider>
     </>
   );
 }
 
 export default function App() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, minHeight: 0 }}>
       <SafeAreaProvider>
-        <ThemeProvider>
-          <AuthProvider>
-            <WebAppFrame>
-              <AppContent />
-            </WebAppFrame>
-          </AuthProvider>
-        </ThemeProvider>
+        <ClerkProvider
+          publishableKey={clerkPublishableKey}
+          localization={meetingProClerkLocalization}
+          tokenCache={Platform.OS === 'web' ? undefined : tokenCache}
+          {...clerkWebRedirects}
+        >
+          <ClerkLoaded>
+            <ThemeProvider>
+              <AuthProvider>
+                <WebAppFrame>
+                  <AppContent />
+                </WebAppFrame>
+              </AuthProvider>
+            </ThemeProvider>
+          </ClerkLoaded>
+        </ClerkProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

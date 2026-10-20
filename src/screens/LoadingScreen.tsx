@@ -291,7 +291,7 @@ export function LoadingScreen({ onFinish }: LoadingScreenProps) {
         </Animated.View>
 
         <Animated.View style={{ opacity: partnerOpacity, marginTop: 8 }}>
-          <Text style={styles.partnerLine}>Infinity Colon & VILATECH</Text>
+          <Text style={styles.partnerLine}>Meeting Pro</Text>
         </Animated.View>
 
         <Animated.View style={[styles.progressContainer, { opacity: progressOpacity }]}>

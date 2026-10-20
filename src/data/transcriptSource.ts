@@ -12,7 +12,8 @@
 // other and every mapping that has to make a choice is marked MISMATCH, so the
 // open decisions stay visible rather than disappearing into the code.
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { useSupabase } from '../contexts/SupabaseContext';
+import { getActiveSupabaseClient } from '../lib/supabaseRef';
 import type { Database } from '../lib/database.types';
 import { SPEAKER_COLORS } from '../constants/theme';
 import * as demo from './demoTranscripts';
@@ -225,6 +226,7 @@ interface ListState {
 }
 
 export function useTranscripts(): ListState {
+  const supabase = useSupabase();
   const [transcripts, setTranscripts] = useState<Transcript[]>(
     DATA_SOURCE === 'mock' ? demo.demoTranscripts : []
   );
@@ -269,7 +271,7 @@ export function useTranscripts(): ListState {
       cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [nonce]);
+  }, [nonce, supabase]);
 
   return { transcripts, loading, error, source: DATA_SOURCE, reload };
 }
@@ -284,6 +286,7 @@ interface DetailState {
 }
 
 export function useTranscript(id: string): DetailState {
+  const supabase = useSupabase();
   const [transcript, setTranscript] = useState<Transcript | undefined>(
     DATA_SOURCE === 'mock' ? demo.getDemoTranscriptById(id) : undefined
   );
@@ -324,7 +327,7 @@ export function useTranscript(id: string): DetailState {
     return () => {
       cancelled = true;
     };
-  }, [id, nonce]);
+  }, [id, nonce, supabase]);
 
   const getSpeakerById = useCallback(
     (speakerId: string) =>
@@ -357,6 +360,7 @@ export interface SearchState {
  * runs as the caller, so RLS scopes it to this business.
  */
 export function useTranscriptSearch(query: string): SearchState {
+  const supabase = useSupabase();
   const [matchIds, setMatchIds] = useState<Set<string> | null>(null);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -392,7 +396,7 @@ export function useTranscriptSearch(query: string): SearchState {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [query]);
+  }, [query, supabase]);
 
   return { matchIds, searching, error };
 }
@@ -413,7 +417,7 @@ export async function setActionItemDone(
   done: boolean
 ): Promise<{ error: string | null }> {
   if (DATA_SOURCE === 'mock') return { error: null };
-  const { error } = await supabase
+  const { error } = await getActiveSupabaseClient()
     .from('action_items')
     .update({ status: done ? 'done' : 'open' })
     .eq('id', actionItemId);
@@ -438,9 +442,12 @@ export async function retryTranscript(transcriptId: string): Promise<RetryResult
   if (DATA_SOURCE === 'mock') {
     return { outcome: 'error', message: 'Retry is not available with mock data.' };
   }
-  const { data, error } = await supabase.functions.invoke<RetryResult>('retry-transcript', {
-    body: { transcript_id: transcriptId },
-  });
+  const { data, error } = await getActiveSupabaseClient().functions.invoke<RetryResult>(
+    'retry-transcript',
+    {
+      body: { transcript_id: transcriptId },
+    }
+  );
   if (data?.outcome) return data;
   // supabase-js reports any non-2xx as an error, so a 404 lands here too. Read
   // the function's own message out of the response when there is one.

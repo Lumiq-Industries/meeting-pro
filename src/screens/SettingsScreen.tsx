@@ -1,19 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   Pressable,
   Switch,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CompositeNavigationProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { GlassBackground } from '../components/GlassBackground';
-import { ContentColumn } from '../components/ContentColumn';
+import { TabScreenLayout } from '../components/TabScreenLayout';
 import { GlassCard } from '../components/GlassCard';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useTheme } from '../contexts/ThemeContext';
@@ -23,6 +20,9 @@ import { COLORS, FONT, RADIUS, BRAND, ThemePalette } from '../constants/theme';
 import { LAYOUT } from '../constants/layout';
 import { MainTabParamList, RootStackParamList } from '../types';
 import { getDeviceLabel, supportsLiquidGlass } from '../utils/platform';
+import { useMeetingMinutesPrefs } from '../data/meetingMinutesPrefs';
+import { GlassInput } from '../components/GlassInput';
+import { ThemeModePicker } from '../components/ThemeModePicker';
 
 type SettingsNav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Settings'>,
@@ -32,17 +32,18 @@ type SettingsNav = CompositeNavigationProp<
 type Props = { navigation: SettingsNav };
 
 export function SettingsScreen({ navigation }: Props) {
-  const { effectiveTheme, setTheme } = useTheme();
-  const { session, signOut } = useAuth();
+  const { effectiveTheme } = useTheme();
+  const { email, signOut } = useAuth();
   const profile = useBusinessProfile();
+  const minutes = useMeetingMinutesPrefs();
+  const [emailDraft, setEmailDraft] = useState('');
   const palette = COLORS[effectiveTheme];
-  const isDark = effectiveTheme === 'dark';
+  React.useEffect(() => {
+    if (minutes.overrideEmail != null) setEmailDraft(minutes.overrideEmail);
+  }, [minutes.overrideEmail]);
 
   return (
-    <GlassBackground>
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <ContentColumn>
+    <TabScreenLayout>
           <ScreenHeader title="Settings" subtitle={profile.businessName ?? ''} />
 
           <GlassCard style={styles.profileCard}>
@@ -75,14 +76,14 @@ export function SettingsScreen({ navigation }: Props) {
                 ]}
               >
                 <Ionicons
-                  name="logo-whatsapp"
+                  name="link-outline"
                   size={14}
-                  color={profile.connected ? BRAND.whatsapp : palette.textMuted}
+                  color={profile.connected ? BRAND.accent : palette.textMuted}
                 />
                 <Text
                   style={[
                     styles.connectedText,
-                    { color: profile.connected ? BRAND.whatsapp : palette.textMuted },
+                    { color: profile.connected ? BRAND.accent : palette.textMuted },
                   ]}
                 >
                   {profile.connected ? 'Connected' : 'Not connected'}
@@ -93,18 +94,10 @@ export function SettingsScreen({ navigation }: Props) {
 
           <Text style={[styles.section, { color: palette.textMuted }]}>APPEARANCE</Text>
           <GlassCard style={styles.menuCard}>
-            <SettingRow
-              icon="moon-outline"
-              label="Dark mode"
-              palette={palette}
-              trailing={
-                <Switch
-                  value={isDark}
-                  onValueChange={(v) => setTheme(v ? 'dark' : 'light')}
-                  trackColor={{ false: '#CBD5E1', true: BRAND.accent }}
-                />
-              }
-            />
+            <Text style={[styles.appearanceHint, { color: palette.textSecondary }]}>
+              Theme — trust green and quality blue accents stay consistent in both modes.
+            </Text>
+            <ThemeModePicker />
             <Divider palette={palette} />
             <SettingRow
               icon="phone-portrait-outline"
@@ -125,11 +118,62 @@ export function SettingsScreen({ navigation }: Props) {
             )}
           </GlassCard>
 
+          <Text style={[styles.section, { color: palette.textMuted }]}>MEETING MINUTES EMAIL</Text>
+          <GlassCard style={styles.menuCard}>
+            <SettingRow
+              icon="mail-outline"
+              label="Email after each call"
+              palette={palette}
+              trailing={
+                <Switch
+                  value={minutes.enabled}
+                  disabled={minutes.loading}
+                  onValueChange={async (v) => {
+                    try {
+                      await minutes.save({ enabled: v });
+                    } catch {
+                      /* prefs may fail until DB migration is applied */
+                    }
+                  }}
+                  trackColor={{ false: '#CBD5E1', true: BRAND.accent }}
+                />
+              }
+            />
+            {minutes.enabled ? (
+              <>
+                <Divider palette={palette} />
+                <View style={styles.emailOverride}>
+                  <GlassInput
+                    label="Send to (optional)"
+                    value={emailDraft}
+                    onChangeText={setEmailDraft}
+                    placeholder={email ?? 'your@email.com'}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    onBlur={async () => {
+                      try {
+                        await minutes.save({
+                          overrideEmail: emailDraft.trim() || null,
+                        });
+                      } catch {
+                        /* ignore */
+                      }
+                    }}
+                  />
+                  <Text style={[styles.emailHint, { color: palette.textMuted }]}>
+                    Leave blank to use your sign-in email. Minutes include summary, decisions, and
+                    action items from WhatsApp Business calls on your linked line.
+                  </Text>
+                </View>
+              </>
+            ) : null}
+          </GlassCard>
+
           <Text style={[styles.section, { color: palette.textMuted }]}>INTEGRATIONS</Text>
           <GlassCard style={styles.menuCard}>
             <Pressable onPress={() => navigation.navigate('WhatsAppConnect')}>
               <SettingRow
-                icon="logo-whatsapp"
+                icon="link-outline"
                 label="WhatsApp Business"
                 value={profile.connected ? 'Connected' : 'Not connected'}
                 palette={palette}
@@ -147,7 +191,7 @@ export function SettingsScreen({ navigation }: Props) {
             <SettingRow
               icon="person-circle-outline"
               label="Signed in as"
-              value={session?.user.email ?? ''}
+              value={email ?? ''}
               palette={palette}
             />
             <Divider palette={palette} />
@@ -162,7 +206,7 @@ export function SettingsScreen({ navigation }: Props) {
           <GlassCard style={styles.vilatechCard}>
             <Text style={[styles.vilatechTitle, { color: palette.text }]}>Lumiq Industries</Text>
             <Text style={[styles.vilatechDesc, { color: palette.textSecondary }]}>
-              Formed by Infinity Colon & VILATECH — WhatsApp Meeting Transcription
+              WhatsApp Business call transcripts and meeting minutes
             </Text>
           </GlassCard>
 
@@ -170,11 +214,7 @@ export function SettingsScreen({ navigation }: Props) {
             Meeting Pro v1.0.0 · Lumiq Industries
           </Text>
 
-          <View style={{ height: LAYOUT.tabBarClearance }} />
-          </ContentColumn>
-        </ScrollView>
-      </SafeAreaView>
-    </GlassBackground>
+    </TabScreenLayout>
   );
 }
 
@@ -215,11 +255,6 @@ function Divider({ palette }: { palette: ThemePalette }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  scroll: {
-    paddingHorizontal: LAYOUT.screenPaddingH,
-    paddingTop: LAYOUT.screenPaddingTop,
-  },
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -253,6 +288,15 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   menuCard: { marginBottom: LAYOUT.blockGap, paddingVertical: 6 },
+  appearanceHint: {
+    fontSize: FONT.sm,
+    lineHeight: 20,
+    paddingHorizontal: 4,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  emailOverride: { paddingHorizontal: 4, paddingBottom: 8 },
+  emailHint: { fontSize: FONT.xs, lineHeight: 18, marginTop: 6 },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -12,13 +12,16 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import { COLORS, RADIUS } from '../constants/theme';
+import { GLASS } from '../constants/glass';
 import {
   getGlassVariant,
   getBlurIntensity,
   getGlassOpacity,
-  getGlassBorderOpacity,
 } from '../utils/platform';
 import { webOnlyStyle } from '../utils/webStyles';
+import { Surface } from './Surface';
+
+export type CardMaterial = 'surface' | 'liquid';
 
 interface GlassCardProps {
   children: ReactNode;
@@ -26,6 +29,9 @@ interface GlassCardProps {
   intensity?: number;
   onPress?: PressableProps['onPress'];
   noPadding?: boolean;
+  /** Default `surface` (corporate). Use `liquid` only for intentional chrome. */
+  material?: CardMaterial;
+  elevated?: boolean;
 }
 
 export function GlassCard({
@@ -34,22 +40,51 @@ export function GlassCard({
   intensity,
   onPress,
   noPadding = false,
+  material = 'surface',
+  elevated = false,
 }: GlassCardProps) {
+  if (material === 'surface') {
+    return (
+      <Surface style={style} onPress={onPress} noPadding={noPadding} elevated={elevated}>
+        {children}
+      </Surface>
+    );
+  }
+
+  return (
+    <LiquidGlassCard
+      style={style}
+      intensity={intensity}
+      onPress={onPress}
+      noPadding={noPadding}
+    >
+      {children}
+    </LiquidGlassCard>
+  );
+}
+
+/** iOS 26–style liquid glass — navigation / focal chrome only. */
+function LiquidGlassCard({
+  children,
+  style,
+  intensity,
+  onPress,
+  noPadding,
+}: Omit<GlassCardProps, 'material'>) {
   const { effectiveTheme } = useTheme();
   const isDark = effectiveTheme === 'dark';
   const palette = COLORS[effectiveTheme];
   const variant = getGlassVariant();
   const blur = intensity ?? getBlurIntensity(variant, isDark);
   const fillOpacity = getGlassOpacity(variant, isDark);
-  const borderOpacity = getGlassBorderOpacity(variant);
 
   const content = (
     <View
       style={[
         styles.wrapper,
         {
-          borderColor: `rgba(255,255,255,${borderOpacity})`,
-          borderRadius: variant === 'liquid' ? RADIUS.lg : RADIUS.md,
+          borderColor: GLASS.border.rim,
+          borderRadius: RADIUS.lg,
         },
         style,
       ]}
@@ -64,33 +99,23 @@ export function GlassCard({
         <View
           style={[
             StyleSheet.absoluteFill,
-            {
-              backgroundColor: isDark ? palette.glassFill : palette.glassFill,
-              opacity: fillOpacity,
-            },
+            { backgroundColor: palette.glassFill, opacity: fillOpacity },
             webOnlyStyle({
-              backdropFilter: 'blur(22px)',
-              WebkitBackdropFilter: 'blur(22px)',
-              backgroundColor: isDark
-                ? 'rgba(255, 255, 255, 0.07)'
-                : 'rgba(255, 255, 255, 0.55)',
+              backdropFilter: `blur(${GLASS.blur.webPx.card}px) saturate(${GLASS.saturate.web})`,
+              WebkitBackdropFilter: `blur(${GLASS.blur.webPx.card}px) saturate(${GLASS.saturate.web})`,
+              backgroundColor: GLASS.fill.bodyDark,
+              boxShadow: GLASS.shadow.card.web,
             }),
           ]}
         />
       )}
 
-      {variant === 'liquid' && (
-        <LinearGradient
-          colors={[
-            'rgba(255,255,255,0.35)',
-            'rgba(255,255,255,0.05)',
-            'rgba(255,255,255,0)',
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={[StyleSheet.absoluteFill, styles.liquidSheen]}
-        />
-      )}
+      <LinearGradient
+        colors={[...GLASS.sheen.top]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={[StyleSheet.absoluteFill, styles.liquidSheen]}
+      />
 
       <View style={[styles.content, !noPadding && styles.padding]}>{children}</View>
     </View>
@@ -111,15 +136,6 @@ const styles = StyleSheet.create({
   wrapper: {
     overflow: 'hidden',
     borderWidth: 1,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.12,
-        shadowRadius: 24,
-      },
-      android: { elevation: 6 },
-    }),
   },
   liquidSheen: {
     borderTopLeftRadius: RADIUS.lg,

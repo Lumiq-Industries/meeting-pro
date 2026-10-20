@@ -1,17 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { GlassBackground } from '../components/GlassBackground';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { GlassBackground } from '../components/GlassBackground';
 import { GlassCard } from '../components/GlassCard';
+import { StackScreenLayout } from '../components/StackScreenLayout';
 import { SpeakerChip } from '../components/SpeakerChip';
 import { ActionItemRow } from '../components/ActionItemRow';
 import { useTheme } from '../contexts/ThemeContext';
@@ -93,8 +87,8 @@ export function TranscriptDetailScreen({ route, navigation }: Props) {
   });
 
   return (
-    <GlassBackground>
-      <SafeAreaView style={styles.safe} edges={['top']}>
+    <StackScreenLayout
+      fullBleedHeader={
         <View style={styles.topBar}>
           <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
             <Ionicons name="arrow-back" size={24} color={palette.text} />
@@ -104,12 +98,13 @@ export function TranscriptDetailScreen({ route, navigation }: Props) {
               <Ionicons name="share-outline" size={22} color={palette.text} />
             </Pressable>
             <Pressable style={styles.iconBtn}>
-              <Ionicons name="logo-whatsapp" size={22} color={BRAND.whatsapp} />
+              <Ionicons name="chatbubble-ellipses-outline" size={22} color={BRAND.accent} />
             </Pressable>
           </View>
         </View>
-
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      }
+      contentStyle={styles.scrollBody}
+    >
           <Text style={[styles.title, { color: palette.text }]}>{transcript.title}</Text>
           <Text style={[styles.meta, { color: palette.textMuted }]}>
             {date} · {transcript.duration}
@@ -238,10 +233,7 @@ export function TranscriptDetailScreen({ route, navigation }: Props) {
               integrations, and no handler behind any of them. Nothing exports
               anywhere yet. */}
 
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      </SafeAreaView>
-    </GlassBackground>
+    </StackScreenLayout>
   );
 }
 
@@ -256,7 +248,7 @@ const styles = StyleSheet.create({
   },
   topActions: { flexDirection: 'row', gap: 8 },
   iconBtn: { padding: 8 },
-  scroll: { padding: 20, paddingTop: 0 },
+  scrollBody: { paddingTop: 0 },
   title: { fontSize: FONT.xxl, fontWeight: '700', lineHeight: 32 },
   meta: { fontSize: FONT.sm, marginTop: 6 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12, marginBottom: 8 },
