@@ -1,6 +1,7 @@
 # Meeting Pro — ECC design contract
 
-**Skill:** `frontend-design-direction` (ECC) + VILATECH liquid glass (`docs/BULLETIC_GLASS.md`).
+**Skill:** `frontend-design-direction` (ECC) + VILATECH liquid glass (`docs/BULLETIC_GLASS.md`).  
+**Chat / ad block:** `docs/MEETING_PRO_BLOCK.md` (Agency, Responsibility, calm motion, 9:16 ad spec).
 
 | Field | Value |
 |--------|--------|
