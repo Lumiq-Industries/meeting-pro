@@ -7,9 +7,9 @@ export function clerkAppOrigin(): string {
 }
 
 export function clerkAuthRedirectUrls() {
-  const home = `${clerkAppOrigin()}/`;
+  const app = `${clerkAppOrigin()}/app`;
   return {
-    fallbackRedirectUrl: home,
-    forceRedirectUrl: home,
+    fallbackRedirectUrl: app,
+    forceRedirectUrl: app,
   };
 }

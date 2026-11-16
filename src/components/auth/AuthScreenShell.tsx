@@ -17,6 +17,7 @@ import { TYPO } from '../../constants/typography';
 import { COMPANY, PRODUCT } from '../../constants/brand';
 import { LAYOUT } from '../../constants/layout';
 import { useStackScreenBottomInset } from '../../hooks/useScrollInsets';
+import { SiteLink } from '../site/SiteLink';
 
 interface AuthScreenShellProps {
   children: ReactNode;
@@ -65,6 +66,21 @@ export function AuthScreenShell({
               <View style={styles.authPanel}>{children}</View>
 
               <Text style={[styles.footer, { color: palette.textMuted }]}>{footer}</Text>
+              {Platform.OS === 'web' ? (
+                <View style={styles.legalRow}>
+                  <SiteLink href="/" style={[styles.legalLink, { color: palette.textMuted }]}>
+                    Home
+                  </SiteLink>
+                  <Text style={{ color: palette.textMuted }}>·</Text>
+                  <SiteLink href="/privacy" style={[styles.legalLink, { color: palette.textMuted }]}>
+                    Privacy
+                  </SiteLink>
+                  <Text style={{ color: palette.textMuted }}>·</Text>
+                  <SiteLink href="/terms" style={[styles.legalLink, { color: palette.textMuted }]}>
+                    Terms
+                  </SiteLink>
+                </View>
+              ) : null}
             </ContentColumn>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -111,5 +127,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: SPACING.md,
     marginTop: SPACING.md,
+  },
+  legalRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
+  },
+  legalLink: {
+    ...TYPO.footnote,
+    fontWeight: '600',
   },
 });

@@ -20,11 +20,14 @@ import { SupabaseSetupScreen } from './screens/SupabaseSetupScreen';
 import { RootNavigator } from './navigation/RootNavigator';
 import { LoadingScreen } from './screens/LoadingScreen';
 import { SignInScreen } from './screens/SignInScreen';
+import { LandingScreen } from './screens/public/LandingScreen';
+import { LegalScreen } from './screens/public/LegalScreen';
 import { WebAppFrame } from './components/WebAppFrame';
 import { getClerkPublishableKey } from './lib/clerkEnv';
 import { clerkAppOrigin } from './lib/clerkRedirectUrls';
 import { meetingProClerkLocalization } from './lib/clerkLocalization';
 import { vilatechClerkAppearance } from './lib/clerkAppearance';
+import { currentSitePath, isPublicSitePath } from './lib/sitePath';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -39,8 +42,8 @@ if (!clerkPublishableKey) {
 const clerkWebRedirects =
   Platform.OS === 'web'
     ? {
-        signInFallbackRedirectUrl: `${clerkAppOrigin()}/`,
-        signUpFallbackRedirectUrl: `${clerkAppOrigin()}/`,
+        signInFallbackRedirectUrl: `${clerkAppOrigin()}/app`,
+        signUpFallbackRedirectUrl: `${clerkAppOrigin()}/app`,
         afterSignOutUrl: `${clerkAppOrigin()}/`,
       }
     : {};
@@ -128,7 +131,16 @@ function AppContent() {
   );
 }
 
+function PublicSite() {
+  const path = currentSitePath();
+  if (path === '/privacy') return <LegalScreen kind="privacy" />;
+  if (path === '/terms') return <LegalScreen kind="terms" />;
+  return <LandingScreen />;
+}
+
 export default function App() {
+  const publicWeb = Platform.OS === 'web' && isPublicSitePath(currentSitePath());
+
   return (
     <GestureHandlerRootView style={{ flex: 1, minHeight: 0 }}>
       <SafeAreaProvider>
@@ -139,15 +151,19 @@ export default function App() {
           tokenCache={Platform.OS === 'web' ? undefined : tokenCache}
           {...clerkWebRedirects}
         >
-          <ClerkLoaded>
-            <ThemeProvider>
-              <AuthProvider>
-                <WebAppFrame>
-                  <AppContent />
-                </WebAppFrame>
-              </AuthProvider>
-            </ThemeProvider>
-          </ClerkLoaded>
+          <ThemeProvider>
+            <AuthProvider>
+              {publicWeb ? (
+                <PublicSite />
+              ) : (
+                <ClerkLoaded>
+                  <WebAppFrame>
+                    <AppContent />
+                  </WebAppFrame>
+                </ClerkLoaded>
+              )}
+            </AuthProvider>
+          </ThemeProvider>
         </ClerkProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

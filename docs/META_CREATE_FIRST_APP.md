@@ -95,7 +95,7 @@ Meta may block **creating apps**, linking businesses, or sensitive changes when 
 
 1. **Finish email verification** and any **2FA** prompts on the same browser — then wait **24–72 hours** while you use that device normally (facebook.com, business.facebook.com, light browsing). Meta rarely lifts this instantly.
 2. **Use the device you always used before** (old laptop / phone browser) for **Create App** once, then add your current machine as normal daily use.
-3. **Teammate with a trusted device:** a Business **admin** creates the Developer app on their login, then adds you as **Developer** or **Admin** on the app (App roles). You can still wire Supabase secrets and Meeting Pro; they only need the browser for creation + App secret copy.
+3. **Teammate with a trusted device:** a Business **admin** creates the Developer app on their login, then adds you as **Developer** or **Admin** on the app (App roles). Copy-paste checklist: [TEAMMATE_META_APP.md](./TEAMMATE_META_APP.md). You can still wire Supabase secrets and Meeting Pro; they only need the browser for creation + App secret copy.
 4. **Do not** spin up VPNs, new Facebook accounts, or “verification bypass” services — that extends locks or triggers reviews.
 
 **Hackathon while blocked:** demo with `EXPO_PUBLIC_DATA_SOURCE=mock` and live **Muse summaries** (`MODEL_API_KEY` on Supabase). Judges still see product + AI; live WhatsApp waits for Meta account trust or a teammate’s app.

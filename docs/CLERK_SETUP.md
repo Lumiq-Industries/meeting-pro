@@ -64,7 +64,7 @@ What you **do** configure is **your app’s URL** (where Meeting Pro runs):
 | Clerk Dashboard location | What to set |
 |--------------------------|-------------|
 | **Configure → Paths** (or **Settings → Paths**) | **Home URL:** `https://meeting-pro-rho.vercel.app` |
-| Same **Paths** page | **Sign-in URL:** `https://meeting-pro-rho.vercel.app` |
+| Same **Paths** page | **Sign-in URL:** `https://meeting-pro-rho.vercel.app/app` |
 | **Configure → Developers → Allowed redirect URLs** (wording may vary) | `https://meeting-pro-rho.vercel.app/*` |
 | **Configure → Developers → Allowed origins** (if shown) | `https://meeting-pro-rho.vercel.app` |
 | Local dev | `http://localhost:8081` (and `http://127.0.0.1:8081` if you use it) in the same redirect/origin lists |

@@ -106,7 +106,7 @@ export function usePlan() {
       }
       setBusy(true);
       setError(null);
-      const callbackUrl = Platform.OS === 'web' ? `${window.location.origin}/?billing=return` : undefined;
+      const callbackUrl = Platform.OS === 'web' ? `${window.location.origin}/app?billing=return` : undefined;
       const { data, error: fnError } = await supabase.functions.invoke('billing-checkout', {
         body: { email, callback_url: callbackUrl },
       });
