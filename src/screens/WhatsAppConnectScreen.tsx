@@ -17,6 +17,15 @@ import { useRegisterWhatsAppNumber } from '../data/whatsappRegistration';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { DATA_SOURCE } from '../lib/supabaseConfig';
 import { getMetaHackathonDefaults } from '../lib/metaHackathonEnv';
+import { FIRST_CALL_CHECKLIST, type ChecklistOwner } from '../constants/firstCallChecklist';
+
+const OWNER_LABEL: Record<ChecklistOwner, string> = {
+  already: 'Done',
+  meta: 'Meta',
+  secrets: 'Supabase',
+  app: 'This screen',
+  test: 'Test',
+};
 
 const metaDefaults = getMetaHackathonDefaults();
 
@@ -38,12 +47,6 @@ export function WhatsAppConnectScreen({ navigation }: Props) {
   const [businessName, setBusinessName] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
-
-  const steps = [
-    'Get WABA + Phone number ID (Meta Social Technologies MCP or WhatsApp → API Setup)',
-    'Use the same number you enabled for Cloud API calling + transcription',
-    'Meta sends finished transcripts to your Supabase webhook — they appear in Minutes',
-  ];
 
   const onSubmit = async () => {
     setFormError(null);
@@ -137,7 +140,8 @@ export function WhatsAppConnectScreen({ navigation }: Props) {
       <Surface style={styles.formBlock}>
         <Text style={[TYPO.headline, { color: palette.text }]}>Link a number</Text>
         <Text style={[TYPO.footnote, styles.formHint, { color: palette.textMuted }]}>
-          From Meta API Setup: Phone number ID, WABA ID, and the display number (E.164).
+          From Meta API Setup: Phone number ID, WABA ID, and the display number. App ID is not
+          entered here.
         </Text>
 
         <GlassInput
@@ -194,20 +198,41 @@ export function WhatsAppConnectScreen({ navigation }: Props) {
       </Surface>
 
       <View style={styles.steps}>
-        {steps.map((step, i) => (
-          <View key={i} style={styles.step}>
-            <View style={[styles.stepNum, { backgroundColor: `${BRAND.accent}22` }]}>
-              <Text style={[styles.stepNumText, { color: BRAND.accent }]}>{i + 1}</Text>
+        <Text style={[TYPO.headline, { color: palette.text, marginBottom: 4 }]}>
+          Before a live call works
+        </Text>
+        {FIRST_CALL_CHECKLIST.map((item, i) => (
+          <View key={item.id} style={styles.step}>
+            <View
+              style={[
+                styles.stepNum,
+                { backgroundColor: item.owner === 'already' ? `${palette.success}22` : `${BRAND.accent}22` },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.stepNumText,
+                  { color: item.owner === 'already' ? palette.success : BRAND.accent },
+                ]}
+              >
+                {item.owner === 'already' ? '✓' : String(i)}
+              </Text>
             </View>
-            <Text style={[styles.stepText, { color: palette.textSecondary }]}>{step}</Text>
+            <View style={styles.stepBody}>
+              <Text style={[styles.stepOwner, { color: palette.textMuted }]}>
+                {OWNER_LABEL[item.owner]}
+              </Text>
+              <Text style={[styles.stepTitle, { color: palette.text }]}>{item.title}</Text>
+              <Text style={[styles.stepText, { color: palette.textSecondary }]}>{item.detail}</Text>
+            </View>
           </View>
         ))}
       </View>
 
       {DATA_SOURCE === 'supabase' ? (
         <Text style={[styles.buttonNote, { color: palette.textMuted }]}>
-          The number must be on the WhatsApp Cloud API with calling enabled. The WhatsApp Business
-          app on a phone is not supported yet.
+          Answer the call in this browser on a laptop. The WhatsApp app on a phone is only for the
+          person placing the test call.
         </Text>
       ) : null}
     </StackScreenLayout>
@@ -250,7 +275,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 2,
   },
   stepNumText: { fontSize: FONT.sm, fontWeight: '700' },
-  stepText: { flex: 1, fontSize: FONT.base, lineHeight: 22 },
+  stepBody: { flex: 1, gap: 2 },
+  stepOwner: { fontSize: FONT.xs, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },
+  stepTitle: { fontSize: FONT.base, fontWeight: '700', lineHeight: 20 },
+  stepText: { fontSize: FONT.sm, lineHeight: 20 },
 });
