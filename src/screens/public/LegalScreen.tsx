@@ -4,7 +4,9 @@ import { SiteChrome } from '../../components/site/SiteChrome';
 import { SiteLink } from '../../components/site/SiteLink';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { COLORS, FONT, SPACING } from '../../constants/theme';
+import { COMPANY } from '../../constants/brand';
 import { LEGAL } from '../../constants/legal';
+import { webOnlyStyle } from '../../utils/webStyles';
 
 const palette = COLORS.dark;
 
@@ -146,18 +148,27 @@ export function LegalScreen({ kind }: { kind: Kind }) {
   const sections = kind === 'privacy' ? PRIVACY : TERMS;
 
   useDocumentTitle(
-    `${title} — ${LEGAL.product}`,
+    `${title} — ${LEGAL.product} | ${COMPANY.name}`,
     `${title} for ${LEGAL.product} by ${LEGAL.entity}. Effective ${LEGAL.effectiveDate}.`
   );
 
   return (
     <SiteChrome active={kind}>
       <View style={styles.head}>
-        <Text accessibilityRole="header" style={styles.h1}>
+        <Text
+          accessibilityRole="header"
+          style={[
+            styles.h1,
+            webOnlyStyle({
+              fontFamily:
+                '"Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif',
+            }),
+          ]}
+        >
           {title}
         </Text>
         <Text style={styles.meta}>
-          {LEGAL.product} · {LEGAL.entity} · Effective {LEGAL.effectiveDate}
+          {COMPANY.name} · {LEGAL.product} · {LEGAL.entity} · Effective {LEGAL.effectiveDate}
         </Text>
         <Text style={styles.switch}>
           {kind === 'privacy' ? (
@@ -199,10 +210,10 @@ const styles = StyleSheet.create({
   head: { gap: SPACING.sm, maxWidth: 720 },
   h1: {
     color: palette.text,
-    fontSize: 34,
-    fontWeight: '800',
-    letterSpacing: -0.6,
-    lineHeight: 40,
+    fontSize: 42,
+    fontWeight: '500',
+    letterSpacing: -1,
+    lineHeight: 48,
   },
   meta: { color: palette.textMuted, fontSize: FONT.sm },
   switch: { color: palette.textSecondary, fontSize: FONT.sm, lineHeight: 22 },

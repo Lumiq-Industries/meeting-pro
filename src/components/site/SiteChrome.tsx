@@ -1,16 +1,19 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MeetingProMark } from '../MeetingProMark';
 import { SiteLink } from './SiteLink';
+import { SiteCta } from './SiteCta';
 import { COLORS, FONT, SPACING, BRAND } from '../../constants/theme';
 import { COMPANY, PRODUCT } from '../../constants/brand';
 import { LEGAL } from '../../constants/legal';
-import { VILATECH_STORY } from '../../constants/glass';
+import { GLASS } from '../../constants/glass';
 import { webOnlyStyle } from '../../utils/webStyles';
 import { useAuth } from '../../contexts/AuthContext';
 import { openSitePath } from '../../lib/sitePath';
 import { TestModeRibbon } from './TestModeRibbon';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { injectPublicSiteCss, PUBLIC_GRAIN, PUBLIC_STORY_CSS } from './injectPublicSiteCss';
 
 const palette = COLORS.dark;
 
@@ -23,56 +26,105 @@ export function SiteChrome({ children, active }: Props) {
   const { width } = useWindowDimensions();
   const compact = width < 720;
   const { isSignedIn } = useAuth();
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    injectPublicSiteCss();
+  }, []);
+
+  const navCta = isSignedIn ? 'Open test workspace' : 'Sign in · TEST MODE';
 
   return (
     <View style={styles.root}>
       <View
         pointerEvents="none"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
         style={[
           styles.wash,
-          webOnlyStyle({ background: VILATECH_STORY.dark.css.replace(/\n/g, ' ') }),
+          webOnlyStyle({
+            background: PUBLIC_STORY_CSS,
+            animation: reduceMotion ? 'none' : 'vilatech-story-ambient 36s ease-in-out infinite alternate',
+            willChange: reduceMotion ? 'auto' : 'transform',
+          }),
+        ]}
+      />
+      <View
+        pointerEvents="none"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={[
+          styles.grain,
+          webOnlyStyle({
+            opacity: 0.028,
+            backgroundImage: PUBLIC_GRAIN,
+          }),
         ]}
       />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <TestModeRibbon />
-        <View style={[styles.nav, compact && styles.navCompact]}>
-            <Pressable
+        <View
+          style={[
+            styles.nav,
+            compact && styles.navCompact,
+            webOnlyStyle({
+              background:
+                'linear-gradient(180deg, rgba(8,8,8,0.72) 0%, rgba(8,8,8,0.42) 100%)',
+              backdropFilter: `blur(${GLASS.blur.webPx.tabBar}px) saturate(${GLASS.saturate.web})`,
+              WebkitBackdropFilter: `blur(${GLASS.blur.webPx.tabBar}px) saturate(${GLASS.saturate.web})`,
+            }),
+          ]}
+        >
+          <Pressable
             accessibilityRole="link"
-            accessibilityLabel={`${PRODUCT.name} home`}
+            accessibilityLabel={`${COMPANY.name} ${PRODUCT.name} home`}
             {...(Platform.OS === 'web' ? { href: '/' } : {})}
             onPress={() => openSitePath('/')}
             style={styles.brand}
           >
-            <MeetingProMark size={36} framed />
+            <MeetingProMark size={compact ? 32 : 36} framed />
             <View>
-              <Text style={styles.brandName}>{PRODUCT.name}</Text>
-              <Text style={styles.brandSub}>{COMPANY.name}</Text>
+              <Text
+                style={[
+                  styles.brandName,
+                  webOnlyStyle({
+                    fontFamily:
+                      '"Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif',
+                  }),
+                ]}
+              >
+                {COMPANY.name}
+              </Text>
+              <Text style={styles.brandSub}>{PRODUCT.name}</Text>
             </View>
           </Pressable>
-          <View style={[styles.navLinks, compact && styles.navLinksWrap]}>
+          <View
+            accessibilityRole="navigation"
+            accessibilityLabel="Site"
+            style={[styles.navLinks, compact && styles.navLinksWrap]}
+          >
             <SiteLink href="/" style={[styles.link, active === 'home' && styles.linkOn]}>
               Product
             </SiteLink>
-            <SiteLink
-              href="/privacy"
-              style={[styles.link, active === 'privacy' && styles.linkOn]}
-            >
+            <SiteLink href="/privacy" style={[styles.link, active === 'privacy' && styles.linkOn]}>
               Privacy
             </SiteLink>
             <SiteLink href="/terms" style={[styles.link, active === 'terms' && styles.linkOn]}>
               Terms
             </SiteLink>
-            <Pressable
-              accessibilityRole="link"
-              accessibilityLabel={isSignedIn ? 'Open workspace' : 'Sign in'}
-              {...(Platform.OS === 'web' ? { href: '/app' } : {})}
-              onPress={() => openSitePath('/app')}
-              style={styles.navCta}
-            >
-              <Text style={styles.navCtaText}>
-                {isSignedIn ? 'Open test workspace' : 'Sign in · test'}
-              </Text>
-            </Pressable>
+            {compact ? (
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel={navCta}
+                {...(Platform.OS === 'web' ? { href: '/app' } : {})}
+                onPress={() => openSitePath('/app')}
+                style={styles.navCtaCompact}
+              >
+                <Text style={styles.navCtaCompactText}>{isSignedIn ? 'Workspace' : 'Sign in'}</Text>
+              </Pressable>
+            ) : (
+              <SiteCta label={navCta} />
+            )}
           </View>
         </View>
 
@@ -81,10 +133,27 @@ export function SiteChrome({ children, active }: Props) {
           contentContainerStyle={styles.scrollInner}
           showsVerticalScrollIndicator
         >
-          <View style={[styles.column, { maxWidth: compact ? 640 : 1120 }]}>{children}</View>
+          <View
+            accessibilityRole="summary"
+            nativeID="main-content"
+            style={[styles.column, { maxWidth: compact ? 640 : 1120 }]}
+          >
+            {children}
+          </View>
           <View style={[styles.footer, { maxWidth: compact ? 640 : 1120 }]}>
+            <Text
+              style={[
+                styles.footLockup,
+                webOnlyStyle({
+                  fontFamily:
+                    '"Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif',
+                }),
+              ]}
+            >
+              {COMPANY.name}
+            </Text>
             <Text style={styles.footText}>
-              {COMPANY.name} · {LEGAL.entity} · {PRODUCT.name}
+              {LEGAL.entity} · {PRODUCT.name}
             </Text>
             <View style={styles.footRow}>
               <SiteLink href="/privacy" style={styles.footLink}>
@@ -106,47 +175,87 @@ export function SiteChrome({ children, active }: Props) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: BRAND.black, minHeight: '100%' as unknown as number },
-  wash: { ...StyleSheet.absoluteFill },
-  safe: { flex: 1 },
+  wash: {
+    position: 'absolute',
+    top: '-12%',
+    left: '-12%',
+    right: '-12%',
+    bottom: '-12%',
+  },
+  grain: { ...StyleSheet.absoluteFill },
+  safe: { flex: 1, zIndex: 1 },
   nav: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    borderBottomWidth: 1,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(255,255,255,0.08)',
     gap: SPACING.md,
   },
   navCompact: { flexWrap: 'wrap' },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-  brandName: { color: palette.text, fontSize: FONT.base, fontWeight: '800' },
-  brandSub: { color: palette.textMuted, fontSize: FONT.xs, letterSpacing: 1.1 },
-  navLinks: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
-  navLinksWrap: { flexWrap: 'wrap' },
-  link: { color: palette.textSecondary, fontSize: FONT.sm, fontWeight: '600' },
-  linkOn: { color: palette.text },
-  navCta: {
-    backgroundColor: BRAND.qualityBlue,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    minHeight: 36,
-    justifyContent: 'center',
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 },
+  brandName: {
+    color: palette.text,
+    fontSize: 20,
+    fontWeight: '500',
+    letterSpacing: 1.4,
   },
-  navCtaText: { color: '#FFF', fontSize: FONT.sm, fontWeight: '700' },
+  brandSub: {
+    color: palette.textMuted,
+    fontSize: FONT.xs,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  navLinks: { flexDirection: 'row', alignItems: 'center', gap: 22 },
+  navLinksWrap: { flexWrap: 'wrap', gap: 14 },
+  link: {
+    color: palette.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    minHeight: 44,
+    paddingVertical: 12,
+  },
+  linkOn: { color: palette.text },
+  navCtaCompact: {
+    backgroundColor: '#FAFAFA',
+    paddingHorizontal: 16,
+    minHeight: 44,
+    justifyContent: 'center',
+    borderRadius: 999,
+  },
+  navCtaCompactText: { color: '#0A0A0A', fontSize: FONT.sm, fontWeight: '700' },
   scroll: { flex: 1 },
-  scrollInner: { paddingBottom: SPACING.xxl, alignItems: 'center' },
-  column: { width: '100%', paddingHorizontal: SPACING.lg, paddingTop: SPACING.xl, gap: SPACING.xl },
+  scrollInner: { paddingBottom: 80, alignItems: 'center' },
+  column: {
+    width: '100%',
+    paddingHorizontal: SPACING.lg,
+    paddingTop: 28,
+    gap: 0,
+  },
   footer: {
     width: '100%',
-    maxWidth: 1120,
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xxl,
-    gap: SPACING.sm,
+    paddingTop: 72,
+    paddingBottom: 32,
+    gap: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+    marginTop: 48,
+  },
+  footLockup: {
+    color: palette.text,
+    fontSize: 22,
+    letterSpacing: 2,
+    fontWeight: '500',
   },
   footRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
-  footText: { color: palette.textMuted, fontSize: FONT.xs },
-  footLink: { color: palette.textSecondary, fontSize: FONT.xs, fontWeight: '600' },
-  footDot: { color: palette.textMuted, fontSize: FONT.xs },
+  footText: { color: palette.textMuted, fontSize: FONT.sm, lineHeight: 20 },
+  footLink: { color: palette.textSecondary, fontSize: FONT.sm, fontWeight: '600', minHeight: 44, paddingVertical: 12 },
+  footDot: { color: palette.textMuted, fontSize: FONT.sm },
 });

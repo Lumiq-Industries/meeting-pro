@@ -1,235 +1,256 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SiteChrome } from '../../components/site/SiteChrome';
+import { SiteCta } from '../../components/site/SiteCta';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useAuth } from '../../contexts/AuthContext';
-import { COLORS, FONT, RADIUS, SPACING, BRAND } from '../../constants/theme';
+import { COLORS, FONT, SPACING } from '../../constants/theme';
 import { COMPANY, PRODUCT } from '../../constants/brand';
 import { LEGAL } from '../../constants/legal';
-import { openSitePath } from '../../lib/sitePath';
-import {
-  TEST_CALL_SEGMENTS,
-  TEST_CALL_TRANSCRIPT,
-  testCallSpeakerName,
-} from '../../data/testCall';
+import { GLASS } from '../../constants/glass';
+import { webOnlyStyle } from '../../utils/webStyles';
+import { TEST_CALL_SEGMENTS, TEST_CALL_TRANSCRIPT, testCallSpeakerName } from '../../data/testCall';
+
+/**
+ * Design direction (frontend-design-direction)
+ * Purpose: convert operators + Yalma into the TEST MODE workspace.
+ * Audience: SA teams who close on WhatsApp voice; investor who already knows VILATECH.
+ * Tone: cinematic editorial, dark, tight type — not a SaaS outline of gray tiles.
+ * Signature: the call becoming a document (minutes stage), glass only on nav + that stage.
+ * Viewports: 390×844, 1440×900.
+ */
 
 const palette = COLORS.dark;
 
-const EXAMPLE_TURNS = TEST_CALL_SEGMENTS.slice(0, 5);
+const DISPLAY = webOnlyStyle({
+  fontFamily: '"Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif',
+});
 
-const PROBLEM = [
+const LIQUID = webOnlyStyle({
+  background: GLASS.fill.cardDark,
+  backdropFilter: `blur(${GLASS.blur.webPx.card}px) saturate(${GLASS.saturate.web})`,
+  WebkitBackdropFilter: `blur(${GLASS.blur.webPx.card}px) saturate(${GLASS.saturate.web})`,
+  boxShadow: GLASS.shadow.card.web,
+});
+
+const SNIPPET = TEST_CALL_SEGMENTS.filter((_, i) => i === 1 || i === 6 || i === 13).slice(0, 3);
+
+const WHY = [
   {
-    title: 'The call ends. The record does not.',
-    body: 'Deposits, dates, and “I’ll email it” live in someone’s memory until they don’t. Clients chase. Banks wait. Staff argue over what was said.',
+    k: '01',
+    title: 'The deal lives in the call.',
+    body: 'Deposits, dates, and “I’ll email it” vanish the moment someone hangs up. Clients chase. Banks wait.',
   },
   {
+    k: '02',
     title: 'WhatsApp is already the office.',
-    body: 'Your clients will not install another app. They call the Business number. If the minutes are not on that line, they are not in the business.',
+    body: 'Nobody will install another app. They call the Business number. Minutes have to live on that line.',
   },
   {
-    title: 'Notes after the fact are fiction.',
-    body: 'Typed recaps miss the CoC booking, the meter reading, the extra R1 500. The transcript is the source. Minutes should follow from it.',
+    k: '03',
+    title: 'Typed recaps are fiction.',
+    body: 'The CoC booking, the meter reading, the extra R1 500 — if it is not in the transcript, it did not happen.',
   },
 ];
 
-const BENEFITS = [
-  {
-    icon: 'document-text-outline' as const,
-    title: 'Minutes the same afternoon',
-    body: 'Decisions, action items, and a one-page recap — not a blank notepad.',
-  },
-  {
-    icon: 'logo-whatsapp' as const,
-    title: 'Stay on WhatsApp',
-    body: 'Clients keep calling the number they already have. You answer in the browser.',
-  },
-  {
-    icon: 'mail-outline' as const,
-    title: 'One pack to forward',
-    body: 'Transcript plus follow-ups in a thread the bank, landlord, or client can use.',
-  },
-  {
-    icon: 'shield-checkmark-outline' as const,
-    title: 'A record you can stand on',
-    body: 'When someone asks “did we agree Friday at eleven?”, you open the call.',
-  },
+const HELPS = [
+  { title: 'Minutes the same afternoon', body: 'Decisions, actions, and a one-page recap — not a blank notepad.' },
+  { title: 'Stay on the number they have', body: 'Clients keep calling WhatsApp Business. You answer in the browser.' },
+  { title: 'One pack to forward', body: 'Transcript plus follow-ups in a thread the bank, landlord, or client can use.' },
+  { title: 'A record you can stand on', body: 'When someone asks “did we agree Friday at eleven?”, you open the call.' },
 ];
 
 const STEPS = [
-  { n: '1', title: 'They call', body: 'Client dials your WhatsApp Business number.' },
-  { n: '2', title: 'You answer', body: 'Pick up in the Meeting Pro browser workspace.' },
-  { n: '3', title: 'Meta transcribes', body: 'After hang-up, the conversation is written down.' },
-  { n: '4', title: 'You send minutes', body: 'Decisions, actions, and email — same day.' },
+  { n: '01', title: 'They call', body: 'The client dials your WhatsApp Business number — the one they already save.' },
+  { n: '02', title: 'You answer', body: 'Pick up in the Meeting Pro browser workspace. No extra app for them.' },
+  { n: '03', title: 'Meta writes it down', body: 'After hang-up, WhatsApp transcribes. Meeting Pro keeps the record.' },
+  { n: '04', title: 'You send minutes', body: 'Decisions, actions, and the email pack — same day, same thread.' },
 ];
 
-const FOR_WHOM = [
-  'Property and rental desks that hand over units on WhatsApp',
-  'Agencies and studios that take briefings by voice, not email',
-  'Owner-operators who cannot sit in every call but must own the outcome',
+const FOR = [
+  { title: 'Property desks', body: 'Handovers, deposits, and occupation dates that cannot live in someone’s head.' },
+  { title: 'Agencies & studios', body: 'Briefings that happen by voice, then need a pack the client can forward.' },
+  { title: 'Owner-operators', body: 'You cannot sit in every call. You still have to own what was agreed.' },
 ];
 
-function Cta({ signedIn, label }: { signedIn: boolean; label?: string }) {
-  return (
-    <Pressable
-      accessibilityRole="link"
-      accessibilityLabel="Sign in to the test workspace"
-      onPress={() => openSitePath('/app')}
-      style={styles.primary}
-    >
-      <Text style={styles.primaryText}>
-        {label ?? (signedIn ? 'Open test workspace' : 'Sign in · TEST MODE')}
-      </Text>
-    </Pressable>
-  );
+function SectionLabel({ children }: { children: string }) {
+  return <Text style={styles.kicker}>{children}</Text>;
 }
 
 export function LandingScreen() {
   const { width } = useWindowDimensions();
-  const split = width >= 900;
+  const split = width >= 960;
+  const wide = width >= 720;
   const { isSignedIn } = useAuth();
+  const cta = isSignedIn ? 'Open test workspace' : 'Sign in · TEST MODE';
 
   useDocumentTitle(
     `${PRODUCT.name} — WhatsApp Business call minutes | ${COMPANY.name}`,
-    'Meeting Pro turns WhatsApp Business calls into transcripts, minutes, decisions and follow-ups.'
+    'Meeting Pro by VILATECH turns WhatsApp Business calls into transcripts, minutes, decisions and follow-ups.'
   );
 
   return (
     <SiteChrome active="home">
       <View style={[styles.hero, split && styles.heroSplit]}>
         <View style={styles.heroCopy}>
-          <Text style={styles.eyebrow}>
-            {COMPANY.name} · {PRODUCT.name} · TEST MODE
-          </Text>
-          <Text style={[styles.h1, !split && styles.h1Compact]}>
+          <SectionLabel>{`${COMPANY.name}  ·  ${PRODUCT.name}  ·  TEST MODE`}</SectionLabel>
+          <Text
+            accessibilityRole="header"
+            style={[styles.h1, !split && styles.h1Compact, DISPLAY]}
+          >
             Every WhatsApp Business call, written down.
           </Text>
           <Text style={styles.lede}>
-            {PRODUCT.name} sits on your WhatsApp Business number. When the call ends, you get the
-            transcript, the decisions, and the action list — so the work actually leaves the phone.
+            {PRODUCT.name} sits on the number they already call. When the line goes dead you still
+            have the transcript, the decisions, and the action list — so the work leaves the phone.
           </Text>
           <View style={styles.ctaRow}>
-            <Cta signedIn={isSignedIn} />
-            <Text style={styles.fine}>
-              R{LEGAL.priceZar}/month after {LEGAL.freeCalls} free transcribed calls. This site is
-              TEST MODE until the WhatsApp account is live.
-            </Text>
+            <SiteCta label={cta} />
           </View>
+          <Text style={styles.fine}>
+            R{LEGAL.priceZar}/month after {LEGAL.freeCalls} free transcribed calls. This site is TEST
+            MODE until the WhatsApp account is live.
+          </Text>
         </View>
-        <View style={styles.heroProof} accessibilityLabel="Product preview: minutes of a test call">
-          <Text style={styles.proofKicker}>After hang-up</Text>
-          <Text style={styles.proofTitle}>{TEST_CALL_TRANSCRIPT.executiveSummary}</Text>
+
+        <View
+          accessibilityLabel="Product preview: minutes after a WhatsApp call"
+          style={[styles.stage, LIQUID]}
+        >
+          <View style={styles.stageTop}>
+            <Text style={styles.stageLive}>After hang-up</Text>
+            <Text style={styles.stageMeta}>WhatsApp voice · TEST MODE</Text>
+          </View>
+          <Text style={[styles.stageTitle, DISPLAY]}>{TEST_CALL_TRANSCRIPT.executiveSummary}</Text>
+          <View style={styles.stageRule} />
           {(TEST_CALL_TRANSCRIPT.decisions ?? []).slice(0, 3).map((d) => (
-            <Text key={d.id} style={styles.proofItem}>
-              · {d.text}
+            <Text key={d.id} style={styles.stageItem}>
+              {d.text}
             </Text>
           ))}
+          <Text style={styles.stageFollow}>
+            Thandi · pack to Lesedi and the bank by 16:00
+          </Text>
         </View>
       </View>
 
-      <View>
-        <Text style={styles.eyebrow}>The problem</Text>
-        <Text style={styles.h2}>Voice is how South African businesses close. Paper is how they lose it.</Text>
-        <View style={[styles.grid3, split && styles.grid3Wide]}>
-          {PROBLEM.map((p) => (
-            <View key={p.title} style={styles.tile}>
-              <Text style={styles.tileTitle}>{p.title}</Text>
-              <Text style={styles.body}>{p.body}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-
-      <View>
-        <Text style={styles.eyebrow}>The product</Text>
-        <Text style={styles.h2}>A workspace on the number they already call.</Text>
-        <Text style={styles.bodyWide}>
-          {PRODUCT.name} is not another meeting bot. It is minutes for WhatsApp Business calling:
-          answer in the browser, keep the conversation, and send a pack the client can forward. Built
-          by {COMPANY.name} for operators who live on that green icon.
+      <View style={styles.statementBlock}>
+        <Text style={[styles.statement, !wide && styles.statementCompact, DISPLAY]}>
+          Voice is how South African businesses close. Paper is how they lose it.
         </Text>
       </View>
 
-      <View>
-        <Text style={styles.eyebrow}>How it works</Text>
-        <View style={[styles.grid4, split && styles.grid4Wide]}>
-          {STEPS.map((s) => (
-            <View key={s.n} style={styles.step}>
-              <Text style={styles.stepN}>{s.n}</Text>
-              <Text style={styles.tileTitle}>{s.title}</Text>
-              <Text style={styles.body}>{s.body}</Text>
+      <View style={styles.section}>
+        <SectionLabel>Why it exists</SectionLabel>
+        <Text accessibilityRole="header" style={[styles.h2, DISPLAY]}>
+          The call ends. The record should not.
+        </Text>
+        <View style={[styles.whyCol, wide && styles.whyRow]}>
+          {WHY.map((item) => (
+            <View key={item.k} style={styles.whyItem}>
+              <Text style={styles.whyIndex}>{item.k}</Text>
+              <Text style={styles.whyTitle}>{item.title}</Text>
+              <Text style={styles.body}>{item.body}</Text>
             </View>
           ))}
         </View>
       </View>
 
-      <View>
-        <Text style={styles.eyebrow}>Why it helps</Text>
-        <View style={[styles.grid2, split && styles.grid2Wide]}>
-          {BENEFITS.map((b) => (
-            <View key={b.title} style={styles.benefit}>
-              <Ionicons name={b.icon} size={22} color={BRAND.qualityBlueLight} />
-              <View style={styles.benefitText}>
-                <Text style={styles.tileTitle}>{b.title}</Text>
-                <Text style={styles.body}>{b.body}</Text>
+      <View style={styles.section}>
+        <SectionLabel>The product</SectionLabel>
+        <Text accessibilityRole="header" style={[styles.h2, DISPLAY]}>
+          A workspace on the number they already save.
+        </Text>
+        <Text style={styles.bodyWide}>
+          {PRODUCT.name} is minutes for WhatsApp Business calling — not another meeting bot. Answer
+          in the browser, keep the conversation, send a pack the client can forward. Built by{' '}
+          {COMPANY.name} for operators who live on that line.
+        </Text>
+        <View style={[styles.helpGrid, split && styles.helpGridWide]}>
+          {HELPS.map((h) => (
+            <View key={h.title} style={styles.helpItem}>
+              <Text style={styles.helpTitle}>{h.title}</Text>
+              <Text style={styles.body}>{h.body}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <SectionLabel>How it works</SectionLabel>
+        <Text accessibilityRole="header" style={[styles.h2, DISPLAY]}>
+          Four beats. Same afternoon.
+        </Text>
+        <View style={styles.spine}>
+          {STEPS.map((s, i) => (
+            <View key={s.n} style={[styles.spineRow, wide && styles.spineRowWide]}>
+              <Text style={[styles.spineN, DISPLAY]}>{s.n}</Text>
+              {wide ? <View style={[styles.spineDotWrap, i === STEPS.length - 1 && styles.spineDotLast]} /> : null}
+              <View style={styles.spineCopy}>
+                <Text style={styles.whyTitle}>{s.title}</Text>
+                <Text style={styles.body}>{s.body}</Text>
               </View>
             </View>
           ))}
         </View>
       </View>
 
-      <View>
-        <Text style={styles.eyebrow}>Who it is for</Text>
-        <Text style={styles.h2}>Teams whose real CRM is a WhatsApp chat list.</Text>
-        {FOR_WHOM.map((line) => (
-          <Text key={line} style={styles.whoLine}>
-            · {line}
-          </Text>
-        ))}
+      <View style={styles.section}>
+        <SectionLabel>Who it is for</SectionLabel>
+        <Text accessibilityRole="header" style={[styles.h2, DISPLAY]}>
+          Teams whose real CRM is a WhatsApp chat list.
+        </Text>
+        <View style={[styles.forCol, split && styles.forRow]}>
+          {FOR.map((item) => (
+            <View key={item.title} style={styles.forItem}>
+              <Text style={[styles.forTitle, DISPLAY]}>{item.title}</Text>
+              <Text style={styles.body}>{item.body}</Text>
+            </View>
+          ))}
+        </View>
       </View>
 
-      <View>
-        <Text style={styles.eyebrow}>Example · TEST MODE</Text>
-        <Text style={styles.h2}>One test call. The rest of the transcript is in the workspace.</Text>
-        <View style={styles.example} accessibilityLabel="Snippet of the Sandton handover test call">
-          <View style={styles.exampleHead}>
-            <View style={styles.waAvatar}>
-              <Ionicons name="call" size={16} color="#052e16" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.callKicker}>WhatsApp voice · Khaya Property Services</Text>
-              <Text style={styles.callTitle}>{TEST_CALL_TRANSCRIPT.title}</Text>
-              <Text style={styles.callMeta}>
-                Thandi · Lesedi Mokoena · {TEST_CALL_TRANSCRIPT.duration} · TEST MODE
-              </Text>
-            </View>
-          </View>
-          {EXAMPLE_TURNS.map((turn, i) => (
+      <View style={styles.section}>
+        <SectionLabel>Example · TEST MODE</SectionLabel>
+        <Text accessibilityRole="header" style={[styles.h2, DISPLAY]}>
+          One handover. The rest is in the workspace.
+        </Text>
+        <View
+          accessibilityLabel="Snippet of the Sandton unit 12B test call"
+          style={[styles.example, LIQUID]}
+        >
+          <Text style={styles.exampleKicker}>Khaya Property Services · unit 12B Sandton</Text>
+          <Text style={styles.exampleTitle}>{TEST_CALL_TRANSCRIPT.title}</Text>
+          <Text style={styles.exampleMeta}>
+            Thandi · Lesedi Mokoena · {TEST_CALL_TRANSCRIPT.duration}
+          </Text>
+          <View style={styles.stageRule} />
+          {SNIPPET.map((turn, i) => (
             <Text key={`${turn.timestamp}-${i}`} style={styles.snip}>
               <Text style={styles.snipWho}>{testCallSpeakerName(turn.speakerId)}</Text>
               {'  '}
               {turn.text}
             </Text>
           ))}
-          <Text style={styles.snipMore}>
-            + {TEST_CALL_SEGMENTS.length - EXAMPLE_TURNS.length} more turns · CoC, deposit, meters,
-            keys Friday 11:00
-          </Text>
-          <Cta signedIn={isSignedIn} label="Open the full call in the test workspace" />
+          <Text style={styles.snipMore}>CoC Thursday 09:00 · keys Friday 11:00 · one email pack</Text>
+          <SiteCta label="Open the full call in the test workspace" />
         </View>
       </View>
 
-      <View style={[styles.priceRow, split && styles.heroSplit]}>
+      <View style={[styles.price, split && styles.heroSplit]}>
         <View style={styles.heroCopy}>
-          <Text style={styles.eyebrow}>Price</Text>
-          <Text style={styles.h2}>R{LEGAL.priceZar} / month</Text>
-          <Text style={styles.body}>
+          <SectionLabel>Price</SectionLabel>
+          <Text accessibilityRole="header" style={[styles.priceFigure, DISPLAY]}>
+            R{LEGAL.priceZar}
+            <Text style={styles.priceUnit}> / month</Text>
+          </Text>
+          <Text style={styles.bodyWide}>
             {LEGAL.freeCalls} transcribed calls free, then R{LEGAL.priceZar} for up to{' '}
             {LEGAL.paidCallCap} calls or {LEGAL.paidMinuteCap} minutes. Paystack, ZAR.
           </Text>
         </View>
-        <View style={styles.ctaEnd}>
-          <Cta signedIn={isSignedIn} />
+        <View style={styles.priceCta}>
+          <SiteCta label={cta} />
           <Text style={styles.fine}>Everything on this site is TEST MODE.</Text>
         </View>
       </View>
@@ -238,111 +259,186 @@ export function LandingScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: { gap: SPACING.xl },
-  heroSplit: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.xl },
-  heroCopy: { flex: 1.15, gap: SPACING.md, minWidth: 260 },
-  eyebrow: {
-    color: BRAND.qualityBlueLight,
-    fontSize: FONT.xs,
-    fontWeight: '800',
-    letterSpacing: 1.6,
+  hero: {
+    gap: 40,
+    paddingTop: 28,
+    paddingBottom: 56,
+  },
+  heroSplit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 56,
+  },
+  heroCopy: { flex: 1.1, gap: 18, minWidth: 260 },
+  kicker: {
+    color: 'rgba(245,245,245,0.55)',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 2.4,
     textTransform: 'uppercase',
   },
   h1: {
     color: palette.text,
-    fontSize: 42,
-    fontWeight: '800',
-    letterSpacing: -1,
-    lineHeight: 48,
+    fontSize: 64,
+    fontWeight: '500',
+    letterSpacing: -1.8,
+    lineHeight: 70,
   },
-  h1Compact: { fontSize: 32, lineHeight: 38 },
+  h1Compact: { fontSize: 40, lineHeight: 44, letterSpacing: -1.1 },
   h2: {
     color: palette.text,
-    fontSize: FONT.xxl,
-    fontWeight: '800',
-    letterSpacing: -0.4,
-    lineHeight: 32,
-    marginTop: 8,
-    marginBottom: SPACING.md,
+    fontSize: 32,
+    fontWeight: '500',
+    letterSpacing: -0.7,
+    lineHeight: 38,
     maxWidth: 720,
+    marginTop: 10,
+    marginBottom: 8,
   },
-  lede: { color: palette.textSecondary, fontSize: FONT.lg, lineHeight: 26, maxWidth: 560 },
-  body: { color: palette.textSecondary, fontSize: FONT.base, lineHeight: 24 },
-  bodyWide: { color: palette.textSecondary, fontSize: FONT.lg, lineHeight: 26, maxWidth: 720 },
-  ctaRow: { gap: SPACING.sm, marginTop: SPACING.sm },
-  ctaEnd: { flex: 0.7, gap: SPACING.sm, minWidth: 220, justifyContent: 'center' },
-  primary: {
-    alignSelf: 'flex-start',
-    backgroundColor: BRAND.qualityBlue,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: RADIUS.md,
-    minHeight: 48,
-    justifyContent: 'center',
+  lede: {
+    color: 'rgba(245,245,245,0.72)',
+    fontSize: 18,
+    lineHeight: 28,
+    maxWidth: 520,
+    fontWeight: '400',
   },
-  primaryText: { color: '#FFF', fontWeight: '800', fontSize: FONT.base },
-  fine: { color: palette.textMuted, fontSize: FONT.xs, lineHeight: 18, maxWidth: 420 },
-  heroProof: {
-    flex: 0.85,
+  body: { color: palette.textSecondary, fontSize: 16, lineHeight: 26 },
+  bodyWide: {
+    color: palette.textSecondary,
+    fontSize: 18,
+    lineHeight: 28,
+    maxWidth: 640,
+    marginBottom: 28,
+  },
+  ctaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 },
+  fine: { color: palette.textMuted, fontSize: FONT.sm, lineHeight: 20, maxWidth: 420 },
+  stage: {
+    flex: 0.9,
     minWidth: 260,
-    gap: 8,
-    padding: SPACING.lg,
-    backgroundColor: 'rgba(10,10,10,0.72)',
+    maxWidth: 480,
+    gap: 12,
+    padding: 28,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderRadius: RADIUS.lg,
+    borderColor: GLASS.border.rim,
+    borderRadius: 28,
   },
-  proofKicker: {
-    color: BRAND.trustGreen,
-    fontSize: FONT.xs,
-    fontWeight: '800',
-    letterSpacing: 1.4,
+  stageTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
+  stageLive: {
+    color: '#86EFAC',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 2,
     textTransform: 'uppercase',
   },
-  proofTitle: { color: palette.text, fontSize: FONT.base, lineHeight: 22, fontWeight: '600' },
-  proofItem: { color: palette.textSecondary, fontSize: FONT.sm, lineHeight: 21 },
-  grid3: { gap: SPACING.lg },
-  grid3Wide: { flexDirection: 'row' },
-  grid2: { gap: SPACING.lg },
-  grid2Wide: { flexDirection: 'row', flexWrap: 'wrap' },
-  grid4: { gap: SPACING.lg },
-  grid4Wide: { flexDirection: 'row' },
-  tile: { flex: 1, gap: 8, minWidth: 200 },
-  tileTitle: { color: palette.text, fontSize: FONT.lg, fontWeight: '700', lineHeight: 24 },
-  step: { flex: 1, gap: 6, minWidth: 140 },
-  stepN: { color: BRAND.qualityBlueLight, fontSize: FONT.xl, fontWeight: '800' },
-  benefit: { flexDirection: 'row', gap: 12, flex: 1, minWidth: 280, maxWidth: 520 },
-  benefitText: { flex: 1, gap: 4 },
-  whoLine: { color: palette.textSecondary, fontSize: FONT.base, lineHeight: 26 },
+  stageMeta: { color: palette.textMuted, fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase' },
+  stageTitle: {
+    color: palette.text,
+    fontSize: 26,
+    lineHeight: 32,
+    fontWeight: '500',
+    letterSpacing: -0.4,
+  },
+  stageRule: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    marginVertical: 6,
+  },
+  stageItem: { color: palette.textSecondary, fontSize: 15, lineHeight: 24, paddingLeft: 2 },
+  stageFollow: { color: 'rgba(245,245,245,0.55)', fontSize: FONT.sm, marginTop: 8 },
+  statementBlock: {
+    paddingVertical: 72,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  statement: {
+    color: palette.text,
+    fontSize: 40,
+    lineHeight: 48,
+    letterSpacing: -0.8,
+    fontWeight: '500',
+    maxWidth: 880,
+  },
+  statementCompact: { fontSize: 28, lineHeight: 34, letterSpacing: -0.5 },
+  section: {
+    paddingTop: 80,
+    paddingBottom: 8,
+  },
+  whyCol: { gap: 36, marginTop: 28 },
+  whyRow: { flexDirection: 'row', gap: 40 },
+  whyItem: { flex: 1, gap: 10, minWidth: 180, maxWidth: 360 },
+  whyIndex: {
+    color: 'rgba(245,245,245,0.35)',
+    fontSize: 12,
+    letterSpacing: 2,
+    fontWeight: '700',
+  },
+  whyTitle: { color: palette.text, fontSize: 20, fontWeight: '600', lineHeight: 26, letterSpacing: -0.3 },
+  helpGrid: { gap: 32 },
+  helpGridWide: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 40, rowGap: 36 },
+  helpItem: {
+    flexGrow: 1,
+    flexBasis: 280,
+    maxWidth: 480,
+    gap: 8,
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(255,255,255,0.14)',
+    paddingLeft: 18,
+  },
+  helpTitle: { color: palette.text, fontSize: 17, fontWeight: '600' },
+  spine: { marginTop: 20, gap: 0 },
+  spineRow: { gap: 8, paddingVertical: 18, borderTopWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.1)' },
+  spineRowWide: { flexDirection: 'row', alignItems: 'flex-start', gap: 28 },
+  spineN: { color: palette.text, fontSize: 28, fontWeight: '500', width: 56, letterSpacing: -0.6 },
+  spineDotWrap: {
+    width: 1,
+    alignSelf: 'stretch',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    minHeight: 48,
+  },
+  spineDotLast: { opacity: 0 },
+  spineCopy: { flex: 1, gap: 6, paddingBottom: 8 },
+  forCol: { gap: 36, marginTop: 20 },
+  forRow: { flexDirection: 'row', gap: 40 },
+  forItem: { flex: 1, gap: 10, minWidth: 180 },
+  forTitle: { color: palette.text, fontSize: 32, fontWeight: '500', letterSpacing: -0.6, lineHeight: 36 },
   example: {
     gap: 10,
-    padding: SPACING.lg,
-    backgroundColor: 'rgba(10,10,10,0.72)',
+    padding: 28,
+    marginTop: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderRadius: RADIUS.lg,
+    borderColor: GLASS.border.rim,
+    borderRadius: 28,
   },
-  exampleHead: { flexDirection: 'row', gap: 12, marginBottom: 6 },
-  waAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: BRAND.whatsapp,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  callKicker: {
+  exampleKicker: {
     color: palette.textMuted,
-    fontSize: FONT.xs,
-    letterSpacing: 1.1,
+    fontSize: 11,
+    letterSpacing: 1.6,
     textTransform: 'uppercase',
     fontWeight: '700',
   },
-  callTitle: { color: palette.text, fontSize: FONT.lg, fontWeight: '800', marginTop: 2 },
-  callMeta: { color: palette.textSecondary, fontSize: FONT.sm, marginTop: 2 },
-  snip: { color: palette.textSecondary, fontSize: FONT.sm, lineHeight: 22 },
+  exampleTitle: { color: palette.text, fontSize: 22, fontWeight: '600', letterSpacing: -0.4 },
+  exampleMeta: { color: palette.textSecondary, fontSize: FONT.sm },
+  snip: { color: palette.textSecondary, fontSize: 15, lineHeight: 24 },
   snipWho: { color: palette.text, fontWeight: '700' },
-  snipMore: { color: palette.textMuted, fontSize: FONT.xs, marginVertical: 4 },
-  priceRow: { gap: SPACING.lg, paddingBottom: SPACING.lg },
+  snipMore: { color: palette.textMuted, fontSize: FONT.sm, marginVertical: 8 },
+  price: {
+    gap: 28,
+    paddingTop: 80,
+    paddingBottom: 24,
+  },
+  priceFigure: {
+    color: palette.text,
+    fontSize: 72,
+    fontWeight: '500',
+    letterSpacing: -2,
+    lineHeight: 76,
+  },
+  priceUnit: {
+    fontSize: 24,
+    color: palette.textSecondary,
+    fontWeight: '400',
+    letterSpacing: 0,
+  },
+  priceCta: { flex: 0.7, gap: 12, minWidth: 220, justifyContent: 'center' },
 });
