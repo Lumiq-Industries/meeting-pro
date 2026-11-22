@@ -96,6 +96,7 @@ export function LandingScreen() {
           <SectionLabel>{`${COMPANY.name}  ·  ${PRODUCT.name}  ·  TEST MODE`}</SectionLabel>
           <Text
             accessibilityRole="header"
+            {...( { accessibilityLevel: 1 } as object)}
             style={[styles.h1, !split && styles.h1Compact, DISPLAY]}
           >
             Every WhatsApp Business call, written down.
@@ -142,7 +143,7 @@ export function LandingScreen() {
 
       <View style={styles.section}>
         <SectionLabel>Why it exists</SectionLabel>
-        <Text accessibilityRole="header" style={[styles.h2, DISPLAY]}>
+        <Text accessibilityRole="header" {...({ accessibilityLevel: 2 } as object)} style={[styles.h2, DISPLAY]}>
           The call ends. The record should not.
         </Text>
         <View style={[styles.whyCol, wide && styles.whyRow]}>
@@ -158,7 +159,7 @@ export function LandingScreen() {
 
       <View style={styles.section}>
         <SectionLabel>The product</SectionLabel>
-        <Text accessibilityRole="header" style={[styles.h2, DISPLAY]}>
+        <Text accessibilityRole="header" {...({ accessibilityLevel: 2 } as object)} style={[styles.h2, DISPLAY]}>
           A workspace on the number they already save.
         </Text>
         <Text style={styles.bodyWide}>
@@ -168,7 +169,7 @@ export function LandingScreen() {
         </Text>
         <View style={[styles.helpGrid, split && styles.helpGridWide]}>
           {HELPS.map((h) => (
-            <View key={h.title} style={styles.helpItem}>
+            <View key={h.title} style={[styles.helpItem, split && styles.helpItemWide]}>
               <Text style={styles.helpTitle}>{h.title}</Text>
               <Text style={styles.body}>{h.body}</Text>
             </View>
@@ -178,7 +179,7 @@ export function LandingScreen() {
 
       <View style={styles.section}>
         <SectionLabel>How it works</SectionLabel>
-        <Text accessibilityRole="header" style={[styles.h2, DISPLAY]}>
+        <Text accessibilityRole="header" {...({ accessibilityLevel: 2 } as object)} style={[styles.h2, DISPLAY]}>
           Four beats. Same afternoon.
         </Text>
         <View style={styles.spine}>
@@ -197,7 +198,7 @@ export function LandingScreen() {
 
       <View style={styles.section}>
         <SectionLabel>Who it is for</SectionLabel>
-        <Text accessibilityRole="header" style={[styles.h2, DISPLAY]}>
+        <Text accessibilityRole="header" {...({ accessibilityLevel: 2 } as object)} style={[styles.h2, DISPLAY]}>
           Teams whose real CRM is a WhatsApp chat list.
         </Text>
         <View style={[styles.forCol, split && styles.forRow]}>
@@ -212,7 +213,7 @@ export function LandingScreen() {
 
       <View style={styles.section}>
         <SectionLabel>Example · TEST MODE</SectionLabel>
-        <Text accessibilityRole="header" style={[styles.h2, DISPLAY]}>
+        <Text accessibilityRole="header" {...({ accessibilityLevel: 2 } as object)} style={[styles.h2, DISPLAY]}>
           One handover. The rest is in the workspace.
         </Text>
         <View
@@ -240,10 +241,16 @@ export function LandingScreen() {
       <View style={[styles.price, split && styles.heroSplit]}>
         <View style={styles.heroCopy}>
           <SectionLabel>Price</SectionLabel>
-          <Text accessibilityRole="header" style={[styles.priceFigure, DISPLAY]}>
-            R{LEGAL.priceZar}
-            <Text style={styles.priceUnit}> / month</Text>
-          </Text>
+          <View style={styles.priceFigureRow}>
+            <Text
+              accessibilityRole="header"
+              {...({ accessibilityLevel: 2 } as object)}
+              style={[styles.priceFigure, DISPLAY]}
+            >
+              R{LEGAL.priceZar}
+            </Text>
+            <Text style={styles.priceUnit}>/ month</Text>
+          </View>
           <Text style={styles.bodyWide}>
             {LEGAL.freeCalls} transcribed calls free, then R{LEGAL.priceZar} for up to{' '}
             {LEGAL.paidCallCap} calls or {LEGAL.paidMinuteCap} minutes. Paystack, ZAR.
@@ -375,16 +382,14 @@ const styles = StyleSheet.create({
   },
   whyTitle: { color: palette.text, fontSize: 20, fontWeight: '600', lineHeight: 26, letterSpacing: -0.3 },
   helpGrid: { gap: 32 },
-  helpGridWide: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 40, rowGap: 36 },
+  helpGridWide: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 48, rowGap: 36 },
   helpItem: {
-    flexGrow: 1,
-    flexBasis: 280,
-    maxWidth: 480,
     gap: 8,
     borderLeftWidth: 1,
     borderLeftColor: 'rgba(255,255,255,0.14)',
     paddingLeft: 18,
   },
+  helpItemWide: { width: '44%', maxWidth: 480 },
   helpTitle: { color: palette.text, fontSize: 17, fontWeight: '600' },
   spine: { marginTop: 20, gap: 0 },
   spineRow: { gap: 8, paddingVertical: 18, borderTopWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.1)' },
@@ -427,6 +432,7 @@ const styles = StyleSheet.create({
     paddingTop: 80,
     paddingBottom: 24,
   },
+  priceFigureRow: { flexDirection: 'row', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' },
   priceFigure: {
     color: palette.text,
     fontSize: 72,
@@ -435,10 +441,11 @@ const styles = StyleSheet.create({
     lineHeight: 76,
   },
   priceUnit: {
-    fontSize: 24,
+    fontSize: 22,
     color: palette.textSecondary,
     fontWeight: '400',
-    letterSpacing: 0,
+    letterSpacing: 0.4,
+    paddingBottom: 10,
   },
   priceCta: { flex: 0.7, gap: 12, minWidth: 220, justifyContent: 'center' },
 });

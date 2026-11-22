@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
 import { Platform, Pressable, StyleProp, Text, TextStyle } from 'react-native';
-import type { SitePath } from '../../lib/sitePath';
+import { openSitePath, type SitePath } from '../../lib/sitePath';
 
 type Props = {
   href: SitePath;
@@ -15,6 +15,7 @@ export function SiteLink({ href, children, style }: Props) {
       accessibilityRole="link"
       accessibilityLabel={typeof children === 'string' ? children : undefined}
       {...(Platform.OS === 'web' ? { href } : {})}
+      onPress={() => openSitePath(href)}
     >
       <Text style={style}>{children}</Text>
     </Pressable>
