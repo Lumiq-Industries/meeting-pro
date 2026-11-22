@@ -30,9 +30,11 @@ export function injectPublicSiteCss(): void {
       min-height: 100%;
     }
 
-    /* RN-web Image fades from opacity 0; if onLoad races, photos stay invisible. */
+    /* RN-web Image uses opacity 0 + z-index -1 until a load handler; both can stick. */
     img {
       opacity: 1 !important;
+      z-index: 0 !important;
+      position: relative;
     }
 
     ::selection {
