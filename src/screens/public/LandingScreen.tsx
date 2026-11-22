@@ -185,7 +185,7 @@ export function LandingScreen() {
         <View style={styles.heroVisual}>
           <Image
             source={heroDesk}
-            style={[styles.heroPhoto, !split && styles.heroPhotoCompact, { opacity: 1 }]}
+            style={[styles.heroPhoto, !split && styles.heroPhotoCompact, { opacity: 1, zIndex: 1 }]}
             resizeMode="cover"
             accessibilityLabel="Desk after a business voice call: phone down, minutes printed beside it"
           />
@@ -261,7 +261,7 @@ export function LandingScreen() {
           <View style={[styles.productSplit, split && styles.heroSplit]}>
             <Image
             source={minutesDesk}
-            style={[styles.productPhoto, !split && styles.productPhotoCompact, { opacity: 1 }]}
+            style={[styles.productPhoto, !split && styles.productPhotoCompact, { opacity: 1, zIndex: 1 }]}
             resizeMode="cover"
               accessibilityLabel="Laptop showing a dark minutes workspace with transcript, decisions, and a draft email"
             />
@@ -296,7 +296,7 @@ export function LandingScreen() {
           <View style={styles.whoFrame}>
             <Image
             source={operatorDesk}
-            style={[styles.whoPhoto, !wide && styles.whoPhotoCompact, { opacity: 1 }]}
+            style={[styles.whoPhoto, !wide && styles.whoPhotoCompact, { opacity: 1, zIndex: 1 }]}
             resizeMode="cover"
               accessibilityLabel="Operator answering a business voice call at a night desk, dark workspace on screen"
             />

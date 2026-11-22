@@ -38,8 +38,7 @@ export function injectPublicSiteCss(): void {
     /* RN-web Image uses opacity 0 + z-index -1 until a load handler; both can stick. */
     img {
       opacity: 1 !important;
-      z-index: 0 !important;
-      position: relative;
+      z-index: 1 !important;
     }
 
     ::selection {
