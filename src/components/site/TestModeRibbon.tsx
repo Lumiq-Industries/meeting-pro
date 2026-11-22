@@ -8,8 +8,8 @@ export function TestModeRibbon() {
     <View style={styles.wrap} accessibilityRole="summary">
       <Text style={styles.badge}>TEST MODE</Text>
       <Text style={styles.copy}>
-        Everything here is TEST MODE — a full WhatsApp Business call and workspace for review.
-        Production numbers unlock when the account is live.
+        This site and workspace are TEST MODE. Sign in to review Meeting Pro with sample data.
+        Production WhatsApp numbers unlock when the account is live.
       </Text>
     </View>
   );

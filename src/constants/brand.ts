@@ -12,5 +12,5 @@ export const STUDIO = {
 export const PRODUCT = {
   name: 'Meeting Pro',
   tagline: 'WhatsApp Business call minutes',
-  fullLockup: 'Limit Industries · Meeting Pro',
+  fullLockup: 'VILATECH · Meeting Pro',
 } as const;

@@ -5,146 +5,232 @@ import { SiteChrome } from '../../components/site/SiteChrome';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useAuth } from '../../contexts/AuthContext';
 import { COLORS, FONT, RADIUS, SPACING, BRAND } from '../../constants/theme';
-import { PRODUCT, STUDIO } from '../../constants/brand';
+import { COMPANY, PRODUCT } from '../../constants/brand';
 import { LEGAL } from '../../constants/legal';
 import { openSitePath } from '../../lib/sitePath';
 import {
   TEST_CALL_SEGMENTS,
-  TEST_CALL_SPEAKERS,
   TEST_CALL_TRANSCRIPT,
   testCallSpeakerName,
 } from '../../data/testCall';
 
 const palette = COLORS.dark;
 
+const EXAMPLE_TURNS = TEST_CALL_SEGMENTS.slice(0, 5);
+
+const PROBLEM = [
+  {
+    title: 'The call ends. The record does not.',
+    body: 'Deposits, dates, and “I’ll email it” live in someone’s memory until they don’t. Clients chase. Banks wait. Staff argue over what was said.',
+  },
+  {
+    title: 'WhatsApp is already the office.',
+    body: 'Your clients will not install another app. They call the Business number. If the minutes are not on that line, they are not in the business.',
+  },
+  {
+    title: 'Notes after the fact are fiction.',
+    body: 'Typed recaps miss the CoC booking, the meter reading, the extra R1 500. The transcript is the source. Minutes should follow from it.',
+  },
+];
+
+const BENEFITS = [
+  {
+    icon: 'document-text-outline' as const,
+    title: 'Minutes the same afternoon',
+    body: 'Decisions, action items, and a one-page recap — not a blank notepad.',
+  },
+  {
+    icon: 'logo-whatsapp' as const,
+    title: 'Stay on WhatsApp',
+    body: 'Clients keep calling the number they already have. You answer in the browser.',
+  },
+  {
+    icon: 'mail-outline' as const,
+    title: 'One pack to forward',
+    body: 'Transcript plus follow-ups in a thread the bank, landlord, or client can use.',
+  },
+  {
+    icon: 'shield-checkmark-outline' as const,
+    title: 'A record you can stand on',
+    body: 'When someone asks “did we agree Friday at eleven?”, you open the call.',
+  },
+];
+
+const STEPS = [
+  { n: '1', title: 'They call', body: 'Client dials your WhatsApp Business number.' },
+  { n: '2', title: 'You answer', body: 'Pick up in the Meeting Pro browser workspace.' },
+  { n: '3', title: 'Meta transcribes', body: 'After hang-up, the conversation is written down.' },
+  { n: '4', title: 'You send minutes', body: 'Decisions, actions, and email — same day.' },
+];
+
+const FOR_WHOM = [
+  'Property and rental desks that hand over units on WhatsApp',
+  'Agencies and studios that take briefings by voice, not email',
+  'Owner-operators who cannot sit in every call but must own the outcome',
+];
+
+function Cta({ signedIn, label }: { signedIn: boolean; label?: string }) {
+  return (
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel="Sign in to the test workspace"
+      onPress={() => openSitePath('/app')}
+      style={styles.primary}
+    >
+      <Text style={styles.primaryText}>
+        {label ?? (signedIn ? 'Open test workspace' : 'Sign in · TEST MODE')}
+      </Text>
+    </Pressable>
+  );
+}
+
 export function LandingScreen() {
   const { width } = useWindowDimensions();
-  const split = width >= 960;
+  const split = width >= 900;
   const { isSignedIn } = useAuth();
 
   useDocumentTitle(
-    `${PRODUCT.name} — test call | ${STUDIO.name}`,
-    'Full WhatsApp Business test call: Sandton unit 12B handover. Minutes, decisions, action items.'
+    `${PRODUCT.name} — WhatsApp Business call minutes | ${COMPANY.name}`,
+    'Meeting Pro turns WhatsApp Business calls into transcripts, minutes, decisions and follow-ups.'
   );
 
   return (
     <SiteChrome active="home">
-      <View style={styles.hero}>
-        <Text style={styles.eyebrow}>{STUDIO.name} · TEST MODE</Text>
-        <Text style={styles.h1}>This is the call. The minutes are already written.</Text>
-        <Text style={styles.lede}>
-          {PRODUCT.name} sits on a WhatsApp Business number. After hang-up, Meta sends the
-          transcript. You get the conversation, the decisions, and an email pack — the same
-          afternoon.
-        </Text>
-        <View style={styles.ctaRow}>
-          <Pressable
-            accessibilityRole="link"
-            accessibilityLabel="Sign in to the test workspace"
-            onPress={() => openSitePath('/app')}
-            style={styles.primary}
-          >
-            <Text style={styles.primaryText}>
-              {isSignedIn ? 'Open test workspace' : 'Sign in to the test workspace'}
-            </Text>
-          </Pressable>
-          <Text style={styles.fine}>
-            R{LEGAL.priceZar}/month after {LEGAL.freeCalls} free transcribed calls. Everything on
-            this site is test until the WhatsApp account is unrestricted.
+      <View style={[styles.hero, split && styles.heroSplit]}>
+        <View style={styles.heroCopy}>
+          <Text style={styles.eyebrow}>
+            {COMPANY.name} · {PRODUCT.name} · TEST MODE
           </Text>
+          <Text style={[styles.h1, !split && styles.h1Compact]}>
+            Every WhatsApp Business call, written down.
+          </Text>
+          <Text style={styles.lede}>
+            {PRODUCT.name} sits on your WhatsApp Business number. When the call ends, you get the
+            transcript, the decisions, and the action list — so the work actually leaves the phone.
+          </Text>
+          <View style={styles.ctaRow}>
+            <Cta signedIn={isSignedIn} />
+            <Text style={styles.fine}>
+              R{LEGAL.priceZar}/month after {LEGAL.freeCalls} free transcribed calls. This site is
+              TEST MODE until the WhatsApp account is live.
+            </Text>
+          </View>
+        </View>
+        <View style={styles.heroProof} accessibilityLabel="Product preview: minutes of a test call">
+          <Text style={styles.proofKicker}>After hang-up</Text>
+          <Text style={styles.proofTitle}>{TEST_CALL_TRANSCRIPT.executiveSummary}</Text>
+          {(TEST_CALL_TRANSCRIPT.decisions ?? []).slice(0, 3).map((d) => (
+            <Text key={d.id} style={styles.proofItem}>
+              · {d.text}
+            </Text>
+          ))}
         </View>
       </View>
 
-      <View style={styles.callStage} accessibilityLabel="Full test call transcript">
-        <View style={styles.callHead}>
-          <View style={styles.callHeadLeft}>
-            <View style={styles.waAvatar}>
-              <Ionicons name="call" size={18} color="#052e16" />
+      <View>
+        <Text style={styles.eyebrow}>The problem</Text>
+        <Text style={styles.h2}>Voice is how South African businesses close. Paper is how they lose it.</Text>
+        <View style={[styles.grid3, split && styles.grid3Wide]}>
+          {PROBLEM.map((p) => (
+            <View key={p.title} style={styles.tile}>
+              <Text style={styles.tileTitle}>{p.title}</Text>
+              <Text style={styles.body}>{p.body}</Text>
             </View>
-            <View>
-              <Text style={styles.callKicker}>WhatsApp voice call · incoming · TEST MODE</Text>
+          ))}
+        </View>
+      </View>
+
+      <View>
+        <Text style={styles.eyebrow}>The product</Text>
+        <Text style={styles.h2}>A workspace on the number they already call.</Text>
+        <Text style={styles.bodyWide}>
+          {PRODUCT.name} is not another meeting bot. It is minutes for WhatsApp Business calling:
+          answer in the browser, keep the conversation, and send a pack the client can forward. Built
+          by {COMPANY.name} for operators who live on that green icon.
+        </Text>
+      </View>
+
+      <View>
+        <Text style={styles.eyebrow}>How it works</Text>
+        <View style={[styles.grid4, split && styles.grid4Wide]}>
+          {STEPS.map((s) => (
+            <View key={s.n} style={styles.step}>
+              <Text style={styles.stepN}>{s.n}</Text>
+              <Text style={styles.tileTitle}>{s.title}</Text>
+              <Text style={styles.body}>{s.body}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View>
+        <Text style={styles.eyebrow}>Why it helps</Text>
+        <View style={[styles.grid2, split && styles.grid2Wide]}>
+          {BENEFITS.map((b) => (
+            <View key={b.title} style={styles.benefit}>
+              <Ionicons name={b.icon} size={22} color={BRAND.qualityBlueLight} />
+              <View style={styles.benefitText}>
+                <Text style={styles.tileTitle}>{b.title}</Text>
+                <Text style={styles.body}>{b.body}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View>
+        <Text style={styles.eyebrow}>Who it is for</Text>
+        <Text style={styles.h2}>Teams whose real CRM is a WhatsApp chat list.</Text>
+        {FOR_WHOM.map((line) => (
+          <Text key={line} style={styles.whoLine}>
+            · {line}
+          </Text>
+        ))}
+      </View>
+
+      <View>
+        <Text style={styles.eyebrow}>Example · TEST MODE</Text>
+        <Text style={styles.h2}>One test call. The rest of the transcript is in the workspace.</Text>
+        <View style={styles.example} accessibilityLabel="Snippet of the Sandton handover test call">
+          <View style={styles.exampleHead}>
+            <View style={styles.waAvatar}>
+              <Ionicons name="call" size={16} color="#052e16" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.callKicker}>WhatsApp voice · Khaya Property Services</Text>
               <Text style={styles.callTitle}>{TEST_CALL_TRANSCRIPT.title}</Text>
               <Text style={styles.callMeta}>
-                Khaya Property Services · Fri 20 Nov 2026 · 09:14–09:26 SAST ·{' '}
-                {TEST_CALL_TRANSCRIPT.duration} · {TEST_CALL_SEGMENTS.length} turns
+                Thandi · Lesedi Mokoena · {TEST_CALL_TRANSCRIPT.duration} · TEST MODE
               </Text>
             </View>
           </View>
-          <View style={styles.speakers}>
-            {TEST_CALL_SPEAKERS.map((s) => (
-              <Text key={s.id} style={[styles.speakerChip, { color: s.color }]}>
-                {s.name}
-              </Text>
-            ))}
-          </View>
-        </View>
-
-        <View style={[styles.callBody, split && styles.callBodySplit]}>
-          <View style={styles.transcriptCol}>
-            {TEST_CALL_SEGMENTS.map((turn, i) => {
-              const business = turn.speakerId === 's-thandi';
-              return (
-                <View
-                  key={`${turn.timestamp}-${i}`}
-                  style={[styles.turn, business ? styles.turnBiz : styles.turnCust]}
-                >
-                  <Text style={[styles.turnMeta, !business && styles.turnMetaCust]}>
-                    {testCallSpeakerName(turn.speakerId)} · {turn.timestamp}
-                  </Text>
-                  <Text style={styles.turnText}>{turn.text}</Text>
-                </View>
-              );
-            })}
-          </View>
-
-          <View style={[styles.minutesCol, split && styles.minutesColWide]}>
-            <Text style={styles.minutesKicker}>Minutes of the call</Text>
-            <Text style={styles.minutesBody}>{TEST_CALL_TRANSCRIPT.summary}</Text>
-            <Text style={styles.minutesKicker}>Decisions</Text>
-            {(TEST_CALL_TRANSCRIPT.decisions ?? []).map((d) => (
-              <Text key={d.id} style={styles.minutesItem}>
-                · {d.text}
-              </Text>
-            ))}
-            <Text style={styles.minutesKicker}>Action items</Text>
-            {(TEST_CALL_TRANSCRIPT.actionItems ?? []).map((item) => (
-              <View key={item.id} style={styles.actionRow}>
-                <Ionicons name="square-outline" size={14} color={BRAND.qualityBlueLight} />
-                <Text style={styles.minutesItem}>
-                  {item.text}
-                  {item.assignee ? ` — ${item.assignee}` : ''}
-                </Text>
-              </View>
-            ))}
-            <Pressable
-              accessibilityRole="link"
-              onPress={() => openSitePath('/app')}
-              style={styles.minutesCta}
-            >
-              <Text style={styles.minutesCtaText}>Open this call in the test workspace</Text>
-            </Pressable>
-          </View>
+          {EXAMPLE_TURNS.map((turn, i) => (
+            <Text key={`${turn.timestamp}-${i}`} style={styles.snip}>
+              <Text style={styles.snipWho}>{testCallSpeakerName(turn.speakerId)}</Text>
+              {'  '}
+              {turn.text}
+            </Text>
+          ))}
+          <Text style={styles.snipMore}>
+            + {TEST_CALL_SEGMENTS.length - EXAMPLE_TURNS.length} more turns · CoC, deposit, meters,
+            keys Friday 11:00
+          </Text>
+          <Cta signedIn={isSignedIn} label="Open the full call in the test workspace" />
         </View>
       </View>
 
-      <View style={[styles.lower, split && styles.callBodySplit]}>
-        <View style={styles.lowerCol}>
-          <Text style={styles.eyebrow}>How it works</Text>
-          <Text style={styles.h2}>They stay on WhatsApp. You get the record.</Text>
-          <Text style={styles.stepBody}>
-            1. Client calls the Business number.{'\n'}
-            2. You answer in the browser.{'\n'}
-            3. Meta transcribes after hang-up.{'\n'}
-            4. Minutes and the transcript land here, then email.
-          </Text>
-        </View>
-        <View style={styles.lowerCol}>
+      <View style={[styles.priceRow, split && styles.heroSplit]}>
+        <View style={styles.heroCopy}>
           <Text style={styles.eyebrow}>Price</Text>
           <Text style={styles.h2}>R{LEGAL.priceZar} / month</Text>
-          <Text style={styles.stepBody}>
+          <Text style={styles.body}>
             {LEGAL.freeCalls} transcribed calls free, then R{LEGAL.priceZar} for up to{' '}
             {LEGAL.paidCallCap} calls or {LEGAL.paidMinuteCap} minutes. Paystack, ZAR.
           </Text>
+        </View>
+        <View style={styles.ctaEnd}>
+          <Cta signedIn={isSignedIn} />
+          <Text style={styles.fine}>Everything on this site is TEST MODE.</Text>
         </View>
       </View>
     </SiteChrome>
@@ -152,7 +238,9 @@ export function LandingScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: { gap: SPACING.md, maxWidth: 720 },
+  hero: { gap: SPACING.xl },
+  heroSplit: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.xl },
+  heroCopy: { flex: 1.15, gap: SPACING.md, minWidth: 260 },
   eyebrow: {
     color: BRAND.qualityBlueLight,
     fontSize: FONT.xs,
@@ -162,20 +250,27 @@ const styles = StyleSheet.create({
   },
   h1: {
     color: palette.text,
-    fontSize: 40,
+    fontSize: 42,
     fontWeight: '800',
-    letterSpacing: -0.9,
-    lineHeight: 46,
+    letterSpacing: -1,
+    lineHeight: 48,
   },
+  h1Compact: { fontSize: 32, lineHeight: 38 },
   h2: {
     color: palette.text,
     fontSize: FONT.xxl,
     fontWeight: '800',
     letterSpacing: -0.4,
     lineHeight: 32,
+    marginTop: 8,
+    marginBottom: SPACING.md,
+    maxWidth: 720,
   },
-  lede: { color: palette.textSecondary, fontSize: FONT.lg, lineHeight: 26 },
+  lede: { color: palette.textSecondary, fontSize: FONT.lg, lineHeight: 26, maxWidth: 560 },
+  body: { color: palette.textSecondary, fontSize: FONT.base, lineHeight: 24 },
+  bodyWide: { color: palette.textSecondary, fontSize: FONT.lg, lineHeight: 26, maxWidth: 720 },
   ctaRow: { gap: SPACING.sm, marginTop: SPACING.sm },
+  ctaEnd: { flex: 0.7, gap: SPACING.sm, minWidth: 220, justifyContent: 'center' },
   primary: {
     alignSelf: 'flex-start',
     backgroundColor: BRAND.qualityBlue,
@@ -186,28 +281,52 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryText: { color: '#FFF', fontWeight: '800', fontSize: FONT.base },
-  fine: { color: palette.textMuted, fontSize: FONT.xs, lineHeight: 18, maxWidth: 520 },
-  callStage: {
-    backgroundColor: 'rgba(10,10,10,0.78)',
+  fine: { color: palette.textMuted, fontSize: FONT.xs, lineHeight: 18, maxWidth: 420 },
+  heroProof: {
+    flex: 0.85,
+    minWidth: 260,
+    gap: 8,
+    padding: SPACING.lg,
+    backgroundColor: 'rgba(10,10,10,0.72)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
-    borderRadius: RADIUS.xl,
-    overflow: 'hidden',
+    borderRadius: RADIUS.lg,
   },
-  callHead: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: SPACING.md,
+  proofKicker: {
+    color: BRAND.trustGreen,
+    fontSize: FONT.xs,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+  },
+  proofTitle: { color: palette.text, fontSize: FONT.base, lineHeight: 22, fontWeight: '600' },
+  proofItem: { color: palette.textSecondary, fontSize: FONT.sm, lineHeight: 21 },
+  grid3: { gap: SPACING.lg },
+  grid3Wide: { flexDirection: 'row' },
+  grid2: { gap: SPACING.lg },
+  grid2Wide: { flexDirection: 'row', flexWrap: 'wrap' },
+  grid4: { gap: SPACING.lg },
+  grid4Wide: { flexDirection: 'row' },
+  tile: { flex: 1, gap: 8, minWidth: 200 },
+  tileTitle: { color: palette.text, fontSize: FONT.lg, fontWeight: '700', lineHeight: 24 },
+  step: { flex: 1, gap: 6, minWidth: 140 },
+  stepN: { color: BRAND.qualityBlueLight, fontSize: FONT.xl, fontWeight: '800' },
+  benefit: { flexDirection: 'row', gap: 12, flex: 1, minWidth: 280, maxWidth: 520 },
+  benefitText: { flex: 1, gap: 4 },
+  whoLine: { color: palette.textSecondary, fontSize: FONT.base, lineHeight: 26 },
+  example: {
+    gap: 10,
     padding: SPACING.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(10,10,10,0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: RADIUS.lg,
   },
-  callHeadLeft: { flexDirection: 'row', gap: SPACING.md, flex: 1, minWidth: 240 },
+  exampleHead: { flexDirection: 'row', gap: 12, marginBottom: 6 },
   waAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: BRAND.whatsapp,
     alignItems: 'center',
     justifyContent: 'center',
@@ -216,84 +335,14 @@ const styles = StyleSheet.create({
   callKicker: {
     color: palette.textMuted,
     fontSize: FONT.xs,
-    letterSpacing: 1.2,
+    letterSpacing: 1.1,
     textTransform: 'uppercase',
     fontWeight: '700',
   },
-  callTitle: { color: palette.text, fontSize: FONT.xl, fontWeight: '800', marginTop: 4 },
-  callMeta: { color: palette.textSecondary, fontSize: FONT.sm, marginTop: 4, lineHeight: 20 },
-  speakers: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' },
-  speakerChip: { fontSize: FONT.sm, fontWeight: '700' },
-  callBody: { gap: 0 },
-  callBodySplit: { flexDirection: 'row', alignItems: 'flex-start' },
-  transcriptCol: {
-    flex: 1.35,
-    padding: SPACING.lg,
-    gap: SPACING.md,
-    borderRightWidth: 0,
-  },
-  minutesCol: {
-    flex: 0.9,
-    minWidth: 260,
-    padding: SPACING.lg,
-    gap: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
-  minutesColWide: {
-    borderTopWidth: 0,
-    borderLeftWidth: 1,
-    borderLeftColor: 'rgba(255,255,255,0.08)',
-  },
-  turn: {
-    gap: 4,
-    maxWidth: '82%',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 16,
-  },
-  turnBiz: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderBottomLeftRadius: 4,
-  },
-  turnCust: {
-    alignSelf: 'flex-end',
-    backgroundColor: 'rgba(37, 211, 102, 0.16)',
-    borderBottomRightRadius: 4,
-  },
-  turnMeta: {
-    color: palette.textMuted,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  turnMetaCust: { color: 'rgba(187, 247, 208, 0.85)', textAlign: 'right' },
-  turnText: { color: palette.text, fontSize: FONT.base, lineHeight: 23 },
-  minutesKicker: {
-    color: BRAND.qualityBlueLight,
-    fontSize: FONT.xs,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    marginTop: 8,
-  },
-  minutesBody: { color: palette.textSecondary, fontSize: FONT.sm, lineHeight: 22 },
-  minutesItem: { color: palette.textSecondary, fontSize: FONT.sm, lineHeight: 21, flex: 1 },
-  actionRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  minutesCta: {
-    marginTop: SPACING.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.16)',
-    borderRadius: RADIUS.md,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  minutesCtaText: { color: palette.text, fontWeight: '700', fontSize: FONT.sm },
-  lower: { gap: SPACING.xl, paddingBottom: SPACING.lg },
-  lowerCol: { flex: 1, gap: SPACING.sm, minWidth: 240 },
-  stepBody: { color: palette.textSecondary, fontSize: FONT.base, lineHeight: 24 },
+  callTitle: { color: palette.text, fontSize: FONT.lg, fontWeight: '800', marginTop: 2 },
+  callMeta: { color: palette.textSecondary, fontSize: FONT.sm, marginTop: 2 },
+  snip: { color: palette.textSecondary, fontSize: FONT.sm, lineHeight: 22 },
+  snipWho: { color: palette.text, fontWeight: '700' },
+  snipMore: { color: palette.textMuted, fontSize: FONT.xs, marginVertical: 4 },
+  priceRow: { gap: SPACING.lg, paddingBottom: SPACING.lg },
 });
