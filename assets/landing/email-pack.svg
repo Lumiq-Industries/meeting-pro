@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 280" role="img" aria-label="Minutes pack leaving as email">
+  <rect width="480" height="280" rx="24" fill="#0A0A0A"/>
+  <rect x="1" y="1" width="478" height="278" rx="23" fill="none" stroke="rgba(255,255,255,0.14)"/>
+  <rect x="58" y="70" width="200" height="140" rx="10" fill="#161616" stroke="rgba(255,255,255,0.14)"/>
+  <rect x="78" y="94" width="120" height="6" rx="3" fill="rgba(255,255,255,0.4)"/>
+  <rect x="78" y="114" width="160" height="4" rx="2" fill="rgba(255,255,255,0.16)"/>
+  <rect x="78" y="128" width="148" height="4" rx="2" fill="rgba(255,255,255,0.12)"/>
+  <rect x="78" y="154" width="88" height="4" rx="2" fill="rgba(59,130,246,0.55)"/>
+  <g transform="translate(250,86)">
+    <rect x="0" y="28" width="160" height="100" rx="12" fill="#111" stroke="#FAFAFA" stroke-width="1.7"/>
+    <path d="M8 36l72 52 72-52" fill="none" stroke="#FAFAFA" stroke-width="1.7" stroke-linejoin="round"/>
+    <path d="M132 8l28 18-18 8" fill="none" stroke="#60A5FA" stroke-width="1.8" stroke-linecap="round"/>
+  </g>
+</svg>

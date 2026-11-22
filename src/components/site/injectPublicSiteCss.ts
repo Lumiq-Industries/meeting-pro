@@ -78,6 +78,10 @@ export function injectPublicSiteCss(): void {
       .motion-reduce-transform {
         transform: none !important;
       }
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
     }
 
     @media (prefers-reduced-transparency: reduce) {

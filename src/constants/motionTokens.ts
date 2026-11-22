@@ -1,33 +1,37 @@
-/**
- * Motion foundations (adapted for Expo / Reanimated).
- * Durations guide attention; springs communicate press/state.
- * Never animate layout props — transform + opacity only.
- */
+/** Motion foundations tokens — durations, easings, distances. Transforms skip when reduced. */
 export const motionTokens = {
   duration: {
-    instant: 100,
-    fast: 160,
-    normal: 280,
-    slow: 420,
-    crawl: 700,
+    instant: 0.08,
+    fast: 0.18,
+    normal: 0.35,
+    slow: 0.6,
+    crawl: 1.0,
+  },
+  easing: {
+    smooth: [0.22, 1, 0.36, 1] as const,
+    sharp: [0.4, 0, 0.2, 1] as const,
+    bounce: [0.34, 1.56, 0.64, 1] as const,
+    linear: [0, 0, 1, 1] as const,
   },
   distance: {
-    sm: 6,
-    md: 12,
-    lg: 20,
+    xs: 4,
+    sm: 8,
+    md: 16,
+    lg: 24,
+    xl: 48,
   },
   scale: {
-    press: 0.97,
+    subtle: 0.98,
+    press: 0.95,
+    pop: 1.04,
     settle: 1,
   },
 } as const;
 
-/** Reanimated spring configs — named presets only. */
 export const springs = {
-  snappy: { damping: 22, stiffness: 320, mass: 0.8 },
-  gentle: { damping: 26, stiffness: 180, mass: 1 },
-  bouncy: { damping: 14, stiffness: 220, mass: 0.9 },
-  instant: { damping: 30, stiffness: 500, mass: 0.6 },
-} as const;
-
-export type SpringName = keyof typeof springs;
+  snappy: { type: 'spring' as const, stiffness: 300, damping: 30 },
+  gentle: { type: 'spring' as const, stiffness: 120, damping: 14 },
+  bouncy: { type: 'spring' as const, stiffness: 400, damping: 10 },
+  instant: { type: 'spring' as const, stiffness: 600, damping: 35 },
+  release: { type: 'spring' as const, stiffness: 200, damping: 20, restDelta: 0.001 },
+};
