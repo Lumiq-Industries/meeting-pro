@@ -10,7 +10,7 @@ export function useResponsiveLayout() {
   const isDesktopWeb = isWeb && width >= LAYOUT.desktopBreakpoint;
 
   const contentMaxWidth = isDesktopWeb
-    ? LAYOUT.maxFrameWidth - 48
+    ? LAYOUT.maxContentWidth
     : isTablet
       ? 560
       : LAYOUT.maxContentWidth;

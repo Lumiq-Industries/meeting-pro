@@ -14,10 +14,10 @@ type Props = {
   onConnect: () => void;
 };
 
-const DEMO_POINTS = [
-  'A property-services business with two weeks of WhatsApp calls',
-  'AI minutes, decisions, follow-ups and action items per call',
-  'Search every conversation, contacts and call metrics',
+const TEST_POINTS = [
+  'A 10-minute test call — Sandton handover — with full minutes',
+  'Decisions, follow-ups and action items the owner can work from',
+  'Account restrictions limit live numbers until we unlock production',
 ];
 
 /** First screen for a signed-in user who has no business yet. */
@@ -48,9 +48,9 @@ export function WelcomeScreen({ onConnect }: Props) {
       <GlassCard style={styles.option}>
         <View style={styles.optionHead}>
           <Ionicons name="sparkles" size={22} color={BRAND.accent} />
-          <Text style={[styles.optionTitle, { color: palette.text }]}>See it working first</Text>
+          <Text style={[styles.optionTitle, { color: palette.text }]}>Open the test workspace</Text>
         </View>
-        {DEMO_POINTS.map((p) => (
+        {TEST_POINTS.map((p) => (
           <View key={p} style={styles.point}>
             <Ionicons name="checkmark" size={16} color={palette.success} />
             <Text style={[styles.pointText, { color: palette.textSecondary }]}>{p}</Text>
@@ -61,19 +61,19 @@ export function WelcomeScreen({ onConnect }: Props) {
           onPress={() => void onExplore()}
           disabled={entering}
           accessibilityRole="button"
-          accessibilityLabel="Explore the demo business"
+          accessibilityLabel="Open the test workspace"
         >
           {entering ? (
             <ActivityIndicator color="#FFF" />
           ) : (
             <>
-              <Text style={styles.ctaText}>Explore the demo business</Text>
+              <Text style={styles.ctaText}>Open the test workspace</Text>
               <Ionicons name="arrow-forward" size={20} color="#FFF" />
             </>
           )}
         </Pressable>
         <Text style={[styles.note, { color: palette.textMuted }]}>
-          Read-only sample data. You can leave the demo at any time.
+          Read-only test data while the WhatsApp account is restricted.
         </Text>
       </GlassCard>
 

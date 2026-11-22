@@ -57,9 +57,9 @@ export function HomeScreen({ navigation }: Props) {
     >
             <ScreenHeader
               title="Dashboard"
-              subtitle="Call minutes, contacts, and searchable transcripts for your Business line"
+              subtitle="Minutes after every WhatsApp Business call"
               textAction={{
-                label: 'Connect WhatsApp Business line',
+                label: 'Connect number',
                 onPress: () => navigation.navigate('WhatsAppConnect'),
               }}
             />
@@ -72,86 +72,78 @@ export function HomeScreen({ navigation }: Props) {
               onPress={() => navigation.navigate('WhatsAppConnect')}
             />
 
-            <GlassCard style={styles.gaugeCard}>
+            <GlassCard style={styles.board}>
               <View style={styles.gaugeRow}>
                 <RingGauge
                   value={analytics.answerRate}
-                  label="Answer rate"
-                  sublabel="Trust · pick-up"
+                  label="Answered"
+                  sublabel={answerPct}
                   color={CHART.answered}
+                  size={88}
                 />
                 <RingGauge
                   value={analytics.outcomeRate}
-                  label="Positive outcomes"
-                  sublabel="Quality · AI"
+                  label="Outcomes"
+                  sublabel={outcomePct}
                   color={CHART.accent}
+                  size={88}
+                />
+              </View>
+              <View style={[styles.metricGrid, { borderTopColor: palette.separator }]}>
+                <MetricTile
+                  label="Calls"
+                  value={analytics.loading ? NO_VALUE : String(analytics.totalCalls)}
+                  hint="Logged"
+                  icon="call"
+                  palette={palette}
+                />
+                <MetricTile
+                  label="Answered"
+                  value={analytics.loading ? NO_VALUE : String(analytics.answered)}
+                  hint={answerPct}
+                  icon="checkmark-circle"
+                  palette={palette}
+                  accent={BRAND.trustGreen}
+                />
+                <MetricTile
+                  label="Missed"
+                  value={analytics.loading ? NO_VALUE : String(analytics.missed)}
+                  hint="No transcript"
+                  icon="close-circle"
+                  palette={palette}
+                  accent={BRAND.gray500}
+                />
+                <MetricTile
+                  label="Average"
+                  value={analytics.loading ? NO_VALUE : analytics.avgDurationLabel}
+                  hint="Talk time"
+                  icon="time"
+                  palette={palette}
+                />
+                <MetricTile
+                  label="Minutes sent"
+                  value={
+                    analytics.minutesEmailed != null ? String(analytics.minutesEmailed) : NO_VALUE
+                  }
+                  hint="Emailed"
+                  icon="mail"
+                  palette={palette}
+                />
+                <MetricTile
+                  label="Outcomes"
+                  value={
+                    analytics.positiveOutcomes != null
+                      ? String(analytics.positiveOutcomes)
+                      : DATA_SOURCE === 'supabase'
+                        ? '—'
+                        : NO_VALUE
+                  }
+                  hint={DATA_SOURCE === 'mock' ? outcomePct : 'After summary'}
+                  icon="trending-up"
+                  palette={palette}
                 />
               </View>
             </GlassCard>
-
-            <View style={styles.metricGrid}>
-              <MetricTile
-                label="Total calls"
-                value={analytics.loading ? NO_VALUE : String(analytics.totalCalls)}
-                hint="All logged calls"
-                icon="call"
-                palette={palette}
-              />
-              <MetricTile
-                label="Answered"
-                value={analytics.loading ? NO_VALUE : String(analytics.answered)}
-                hint={`Pick-up ${answerPct}`}
-                icon="checkmark-circle"
-                palette={palette}
-                accent={BRAND.trustGreen}
-              />
-              <MetricTile
-                label="Missed / busy"
-                value={analytics.loading ? NO_VALUE : String(analytics.missed)}
-                hint="No transcript"
-                icon="close-circle"
-                palette={palette}
-                accent={BRAND.gray500}
-              />
-              <MetricTile
-                label="Avg duration"
-                value={analytics.loading ? NO_VALUE : analytics.avgDurationLabel}
-                hint="Connected calls"
-                icon="time"
-                palette={palette}
-              />
-            </View>
-
-            <View style={styles.metricRow2}>
-              <MetricTile
-                label="Minutes emailed"
-                value={
-                  analytics.minutesEmailed != null ? String(analytics.minutesEmailed) : NO_VALUE
-                }
-                hint="Transcripts ready"
-                icon="mail"
-                palette={palette}
-                wide
-              />
-              <MetricTile
-                label="Positive outcomes"
-                value={
-                  analytics.positiveOutcomes != null
-                    ? String(analytics.positiveOutcomes)
-                    : DATA_SOURCE === 'supabase'
-                      ? 'AI pending'
-                      : NO_VALUE
-                }
-                hint={
-                  DATA_SOURCE === 'mock'
-                    ? `${outcomePct} of scored calls`
-                    : 'After AI summary runs'
-                }
-                icon="trending-up"
-                palette={palette}
-                wide
-              />
-            </View>
 
             {analytics.medianTimeToTranscriptMinutes != null ? (
               <GlassCard style={styles.speedCard}>
@@ -300,7 +292,6 @@ function MetricTile({
   icon,
   palette,
   accent,
-  wide,
 }: {
   label: string;
   value: string;
@@ -308,15 +299,20 @@ function MetricTile({
   icon: keyof typeof Ionicons.glyphMap;
   palette: ThemePalette;
   accent?: string;
-  wide?: boolean;
 }) {
   return (
-    <GlassCard style={[styles.metricTile, wide && styles.metricTileWide]}>
-      <Ionicons name={icon} size={18} color={accent ?? BRAND.accent} />
-      <Text style={[styles.metricValue, { color: palette.text }]}>{value}</Text>
-      <Text style={[styles.metricLabel, { color: palette.text }]}>{label}</Text>
-      <Text style={[styles.metricHint, { color: palette.textMuted }]}>{hint}</Text>
-    </GlassCard>
+    <View style={styles.metricTile}>
+      <Ionicons name={icon} size={14} color={accent ?? BRAND.accent} />
+      <Text style={[styles.metricValue, { color: palette.text }]} numberOfLines={1}>
+        {value}
+      </Text>
+      <Text style={[styles.metricLabel, { color: palette.text }]} numberOfLines={1}>
+        {label}
+      </Text>
+      <Text style={[styles.metricHint, { color: palette.textMuted }]} numberOfLines={1}>
+        {hint}
+      </Text>
+    </View>
   );
 }
 
@@ -341,12 +337,13 @@ function WorkflowStep({
 
 const styles = StyleSheet.create({
   statusCard: { marginBottom: LAYOUT.blockGap },
-  gaugeCard: { marginBottom: LAYOUT.blockGap, paddingVertical: 8 },
+  board: { marginBottom: LAYOUT.blockGap, paddingVertical: 12, gap: 8 },
   gaugeRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'flex-start',
     gap: SPACING.md,
+    paddingBottom: 8,
   },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   statusIcon: {
@@ -362,26 +359,23 @@ const styles = StyleSheet.create({
   metricGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: LAYOUT.itemGap,
-    marginBottom: LAYOUT.itemGap,
-  },
-  metricRow2: {
-    flexDirection: 'row',
-    gap: LAYOUT.itemGap,
-    marginBottom: LAYOUT.blockGap,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 8,
   },
   metricTile: {
-    width: '48%',
+    width: '33.33%',
+    minWidth: 96,
     flexGrow: 1,
-    flexBasis: '46%',
-    gap: 4,
-    paddingVertical: 14,
+    gap: 2,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
   },
-  metricTileWide: {
-    flex: 1,
-    flexBasis: '46%',
+  metricValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: -0.4,
+    marginTop: 4,
   },
-  metricValue: { ...TYPO.metric, marginTop: 6 },
   metricLabel: { ...TYPO.footnote, fontWeight: '600' },
   metricHint: { ...TYPO.footnote },
   speedCard: {

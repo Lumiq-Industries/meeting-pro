@@ -18,15 +18,15 @@ export function environmentBannerCopy(env: AppDataEnvironment): {
   switch (env) {
     case 'mock':
       return {
-        title: 'Local demo mode',
-        detail: 'In-memory sample calls only. No database or WhatsApp integration.',
+        title: 'Local test mode',
+        detail: 'In-memory test calls only. No database or WhatsApp integration.',
         tone: 'amber',
       };
     case 'demonstration':
       return {
-        title: 'Demonstration workspace',
+        title: 'Test workspace',
         detail:
-          'You are viewing Khaya Property Services, a sample business. Calls and minutes here are demo data.',
+          'Khaya Property Services. This is the test call we can run while the WhatsApp account is restricted. Investment unlocks production numbers so any country code can call in.',
         tone: 'sky',
       };
     default:

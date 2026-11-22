@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MeetingProMark } from '../MeetingProMark';
 import { SiteLink } from './SiteLink';
 import { COLORS, FONT, SPACING, BRAND } from '../../constants/theme';
-import { COMPANY, PRODUCT } from '../../constants/brand';
+import { PRODUCT, STUDIO } from '../../constants/brand';
 import { LEGAL } from '../../constants/legal';
 import { VILATECH_STORY } from '../../constants/glass';
 import { webOnlyStyle } from '../../utils/webStyles';
@@ -44,7 +44,7 @@ export function SiteChrome({ children, active }: Props) {
             <MeetingProMark size={36} framed />
             <View>
               <Text style={styles.brandName}>{PRODUCT.name}</Text>
-              <Text style={styles.brandSub}>{COMPANY.name}</Text>
+              <Text style={styles.brandSub}>{STUDIO.name}</Text>
             </View>
           </Pressable>
           <View style={[styles.navLinks, compact && styles.navLinksWrap]}>
@@ -80,7 +80,7 @@ export function SiteChrome({ children, active }: Props) {
           <View style={[styles.column, { maxWidth: compact ? 640 : 980 }]}>{children}</View>
           <View style={styles.footer}>
             <Text style={styles.footText}>
-              {LEGAL.entity} · {PRODUCT.name}
+              {STUDIO.name} · {LEGAL.entity} · {PRODUCT.name}
             </Text>
             <View style={styles.footRow}>
               <SiteLink href="/privacy" style={styles.footLink}>

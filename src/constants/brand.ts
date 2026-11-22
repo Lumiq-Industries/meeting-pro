@@ -5,8 +5,12 @@ export const COMPANY = {
   site: 'vilatech.co',
 } as const;
 
+export const STUDIO = {
+  name: 'Limit Industries',
+} as const;
+
 export const PRODUCT = {
   name: 'Meeting Pro',
   tagline: 'WhatsApp Business call minutes',
-  fullLockup: 'VILATECH · Meeting Pro',
+  fullLockup: 'Limit Industries · Meeting Pro',
 } as const;

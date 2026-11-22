@@ -462,7 +462,7 @@ export async function setActionItemDone(
     .select('id');
   if (error) return { error: error.message };
   // RLS filters rows silently: zero rows means read-only access (the demo).
-  if (!data?.length) return { error: 'The demo business is read-only.' };
+  if (!data?.length) return { error: 'The test workspace is read-only.' };
   return { error: null };
 }
 

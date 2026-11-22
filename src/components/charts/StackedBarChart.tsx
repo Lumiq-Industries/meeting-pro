@@ -19,7 +19,7 @@ export function StackedBarChart({ data, height = 168 }: StackedBarChartProps) {
   const { effectiveTheme } = useTheme();
   const palette = COLORS[effectiveTheme];
   const { width: screenW } = useWindowDimensions();
-  const chartWidth = Math.min(screenW - 80, 360);
+  const chartWidth = Math.max(240, Math.min(screenW - 96, 640));
 
   const max = Math.max(1, ...data.map((d) => d.answered + d.missed));
   const yTicks = useMemo(() => {

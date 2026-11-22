@@ -3,6 +3,17 @@ import type { CallRecord } from './callHistory';
 /** Demo call log for EXPO_PUBLIC_DATA_SOURCE=mock — powers dashboard metrics. */
 export const demoCallRecords: CallRecord[] = [
   {
+    id: 'c-test-sandton',
+    counterparty: 'Lesedi Mokoena',
+    direction: 'user_initiated',
+    startedAt: '2026-11-20T09:14:00Z',
+    durationSeconds: 612,
+    status: 'COMPLETED',
+    transcriptId: 't-test-sandton-handover',
+    transcriptTitle: 'Test call — Sandton unit 12B handover',
+    transcriptState: 'ready',
+  },
+  {
     id: 'c1',
     counterparty: '+27 82 441 2201',
     direction: 'user_initiated',

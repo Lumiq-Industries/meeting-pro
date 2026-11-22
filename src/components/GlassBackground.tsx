@@ -47,7 +47,7 @@ export function GlassBackground({ children, style }: GlassBackgroundProps) {
     : palette.backgroundGradient;
 
   return (
-    <View style={[styles.root, style]}>
+    <View style={[styles.root, { backgroundColor: palette.background }, style]}>
       <LinearGradient
         colors={[...baseGradient]}
         locations={isDark ? [0, 0.25, 0.55, 0.8, 1] : undefined}

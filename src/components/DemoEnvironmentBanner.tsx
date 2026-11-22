@@ -61,7 +61,7 @@ export function DemoEnvironmentBanner({ compact, onLearnMore }: Props) {
           hitSlop={8}
           accessibilityRole="button"
         >
-          <Text style={[styles.link, { color: accent }]}>Leave demo</Text>
+          <Text style={[styles.link, { color: accent }]}>Leave test</Text>
         </Pressable>
       ) : onLearnMore ? (
         <Pressable onPress={onLearnMore} hitSlop={8} accessibilityRole="button">

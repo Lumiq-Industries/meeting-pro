@@ -58,7 +58,7 @@ export function WebAppFrame({ children }: WebAppFrameProps) {
   }
 
   const frameHeight = Math.min(height - 40, LAYOUT.maxFrameHeight);
-  const frameWidth = Math.min(width - 32, width >= 1024 ? 480 : LAYOUT.maxFrameWidth);
+  const frameWidth = Math.min(width - 48, LAYOUT.maxFrameWidth);
 
   return (
     <View style={styles.desktopCanvas}>

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { COLORS, BRAND } from '../constants/theme';
 import { TYPO } from '../constants/typography';
-import { COMPANY, PRODUCT } from '../constants/brand';
+import { PRODUCT, STUDIO } from '../constants/brand';
 import { LAYOUT } from '../constants/layout';
 
 interface ScreenHeaderProps {
@@ -36,7 +36,7 @@ export function ScreenHeader({
 }: ScreenHeaderProps) {
   const { effectiveTheme } = useTheme();
   const palette = COLORS[effectiveTheme];
-  const eyebrowText = eyebrow ?? `${COMPANY.name} · ${PRODUCT.name}`;
+  const eyebrowText = eyebrow ?? `${STUDIO.name} · ${PRODUCT.name}`;
 
   return (
     <View style={styles.wrapper}>
