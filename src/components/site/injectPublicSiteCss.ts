@@ -20,6 +20,11 @@ export function injectPublicSiteCss(): void {
       100% { transform: translate3d(-2.5%, 4%, 0) scale(1.02); }
     }
 
+    @keyframes vt-fade-up {
+      from { opacity: 0.35; transform: translate3d(0, 16px, 0); }
+      to { opacity: 1; transform: translate3d(0, 0, 0); }
+    }
+
     :root {
       --vt-display: "Iowan Old Style", Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif;
       --vt-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
