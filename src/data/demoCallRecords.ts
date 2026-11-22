@@ -7,10 +7,10 @@ export const demoCallRecords: CallRecord[] = [
     counterparty: 'Lesedi Mokoena',
     direction: 'user_initiated',
     startedAt: '2026-11-20T09:14:00Z',
-    durationSeconds: 612,
+    durationSeconds: 712,
     status: 'COMPLETED',
     transcriptId: 't-test-sandton-handover',
-    transcriptTitle: 'Test call — Sandton unit 12B handover',
+    transcriptTitle: 'Sandton unit 12B — occupation handover',
     transcriptState: 'ready',
   },
   {

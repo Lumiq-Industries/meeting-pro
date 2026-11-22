@@ -6,7 +6,7 @@
 //
 // Before this, a new sign-in fell straight into empty screens and a developer
 // error, so nobody outside the team ever saw the product working.
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { useSupabase } from './SupabaseContext';
 import { DATA_SOURCE } from '../lib/supabaseConfig';
@@ -38,6 +38,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
   const [settingUp, setSettingUp] = useState(false);
+  const skipAutoTest = useRef(false);
   const reload = useCallback(() => setNonce((n) => n + 1), []);
 
   useEffect(() => {
@@ -62,6 +63,18 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       } else if (!demo.error && demo.data) {
         setIsDemoData(true);
         setMode('demo');
+      } else if (!skipAutoTest.current) {
+        const { error: rpcError } = await supabase.rpc('enter_demo');
+        if (cancelled) return;
+        if (rpcError) {
+          skipAutoTest.current = true;
+          setError(explainSupabaseAuthError(rpcError.message));
+          setIsDemoData(false);
+          setMode('none');
+          return;
+        }
+        setIsDemoData(true);
+        setMode('demo');
       } else {
         setIsDemoData(false);
         setMode('none');
@@ -82,6 +95,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }, [supabase, reload]);
 
   const leaveDemo = useCallback(async () => {
+    skipAutoTest.current = true;
     const { error: rpcError } = await supabase.rpc('leave_demo');
     if (rpcError) {
       setError(explainSupabaseAuthError(rpcError.message));

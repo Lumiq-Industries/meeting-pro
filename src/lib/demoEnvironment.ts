@@ -24,9 +24,9 @@ export function environmentBannerCopy(env: AppDataEnvironment): {
       };
     case 'demonstration':
       return {
-        title: 'Test workspace',
+        title: 'TEST MODE',
         detail:
-          'Khaya Property Services. This is the test call we can run while the WhatsApp account is restricted. Investment unlocks production numbers so any country code can call in.',
+          'Khaya Property Services. Full test call on this workspace. Production WhatsApp numbers unlock with investment.',
         tone: 'sky',
       };
     default:

@@ -10,6 +10,7 @@ import { VILATECH_STORY } from '../../constants/glass';
 import { webOnlyStyle } from '../../utils/webStyles';
 import { useAuth } from '../../contexts/AuthContext';
 import { openSitePath } from '../../lib/sitePath';
+import { TestModeRibbon } from './TestModeRibbon';
 
 const palette = COLORS.dark;
 
@@ -33,6 +34,7 @@ export function SiteChrome({ children, active }: Props) {
         ]}
       />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <TestModeRibbon />
         <View style={[styles.nav, compact && styles.navCompact]}>
             <Pressable
             accessibilityRole="link"
@@ -67,7 +69,9 @@ export function SiteChrome({ children, active }: Props) {
               onPress={() => openSitePath('/app')}
               style={styles.navCta}
             >
-              <Text style={styles.navCtaText}>{isSignedIn ? 'Open workspace' : 'Sign in'}</Text>
+              <Text style={styles.navCtaText}>
+                {isSignedIn ? 'Open test workspace' : 'Sign in · test'}
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -77,8 +81,8 @@ export function SiteChrome({ children, active }: Props) {
           contentContainerStyle={styles.scrollInner}
           showsVerticalScrollIndicator
         >
-          <View style={[styles.column, { maxWidth: compact ? 640 : 980 }]}>{children}</View>
-          <View style={styles.footer}>
+          <View style={[styles.column, { maxWidth: compact ? 640 : 1120 }]}>{children}</View>
+          <View style={[styles.footer, { maxWidth: compact ? 640 : 1120 }]}>
             <Text style={styles.footText}>
               {STUDIO.name} · {LEGAL.entity} · {PRODUCT.name}
             </Text>
@@ -136,7 +140,7 @@ const styles = StyleSheet.create({
   column: { width: '100%', paddingHorizontal: SPACING.lg, paddingTop: SPACING.xl, gap: SPACING.xl },
   footer: {
     width: '100%',
-    maxWidth: 980,
+    maxWidth: 1120,
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.xxl,
     gap: SPACING.sm,

@@ -38,10 +38,12 @@ export function WelcomeScreen({ onConnect }: Props) {
     <StackScreenLayout contentStyle={styles.body}>
       <View style={styles.hero}>
         <MeetingProMark size={80} framed />
-        <Text style={[styles.headline, { color: palette.text }]}>Welcome to {PRODUCT.name}</Text>
+        <Text style={[styles.headline, { color: palette.text }]}>
+          {PRODUCT.name} · TEST MODE
+        </Text>
         <Text style={[styles.sub, { color: palette.textSecondary }]}>
-          Every WhatsApp Business call, turned into minutes, decisions and follow-ups your clients
-          can sign off on.
+          Signed-in accounts open the Khaya test workspace first — a full call, minutes, and action
+          items. Live WhatsApp numbers stay locked until the account is unrestricted.
         </Text>
       </View>
 
