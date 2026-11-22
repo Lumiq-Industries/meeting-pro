@@ -27,7 +27,7 @@ export function MeetingProMark({ size = 48, style, framed = false }: MeetingProM
     >
       <Image
         source={iconSource}
-        style={{ width: size, height: size, borderRadius: radius }}
+        style={{ width: size, height: size, borderRadius: radius, opacity: 1 }}
         resizeMode="cover"
       />
     </View>
