@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SiteChrome } from '../../components/site/SiteChrome';
 import { SiteCta } from '../../components/site/SiteCta';
 import { LandingReveal } from '../../components/site/LandingReveal';
@@ -11,7 +11,13 @@ import {
   IconMinutes,
   IconTranscript,
 } from '../../components/site/LandingIcons';
-import { SceneCallToMinutes, SceneEmailPack } from '../../components/site/LandingScenes';
+import {
+  SceneCallToMinutes,
+  SceneEmailPack,
+  SceneHeroDesk,
+  SceneWorkspace,
+} from '../../components/site/LandingScenes';
+import { FittedScene } from '../../components/site/FittedScene';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useAuth } from '../../contexts/AuthContext';
 import { COLORS, FONT } from '../../constants/theme';
@@ -20,17 +26,13 @@ import { LEGAL } from '../../constants/legal';
 import { GLASS } from '../../constants/glass';
 import { webOnlyStyle } from '../../utils/webStyles';
 
-const heroDesk = require('../../../assets/landing/hero-voice-desk.jpg');
-const minutesDesk = require('../../../assets/landing/minutes-workspace.jpg');
-const operatorDesk = require('../../../assets/landing/operator-answer.jpg');
-
 /**
  * Design direction
  * Purpose: sell TEST MODE workspace — operators who close on WhatsApp Business voice.
- * Audience: SA desks + one investor. Sandton call is a small proof, not the page.
- * Tone: cinematic editorial, dark, photographic, not a SaaS outline.
- * Signature: the hung-up phone becoming a minutes sheet (photo + original SVG).
- * Viewports: 390×844, 1440×900.
+ * Audience: SA desks + one investor.
+ * Tone: cinematic editorial, dark. Photos dropped: they stretched on mobile.
+ * Signature: original SVG scenes in locked aspect boxes.
+ * Viewports: 390×844, 768×1024, 1440×900.
  */
 
 const palette = COLORS.dark;
@@ -125,31 +127,55 @@ function IconWell({ children, tint }: { children: ReactNode; tint?: string }) {
 
 export function LandingScreen() {
   const { width } = useWindowDimensions();
-  const split = width >= 960;
-  const wide = width >= 720;
+  const phone = width < 600;
+  const tablet = width >= 600 && width < 1024;
+  const desktop = width >= 1024;
   const { isSignedIn } = useAuth();
   const cta = isSignedIn ? 'Open test workspace' : 'Sign in · TEST MODE';
-  const sceneW = Math.min(width - 48, split ? 520 : 640);
-  const sceneH = Math.round(sceneW * 0.56);
 
   useDocumentTitle(
     `${PRODUCT.name} — WhatsApp Business call minutes | ${COMPANY.name}`,
     'Meeting Pro by VILATECH turns WhatsApp Business calls into transcripts, minutes, decisions and follow-ups.'
   );
 
+  const stageCard = (
+    <View style={[styles.stage, !desktop && styles.stageFlow, LIQUID]} accessibilityLabel="Minutes after hang-up">
+      <View style={styles.stageTop}>
+        <Text style={styles.stageLive}>After hang-up</Text>
+        <Text style={styles.stageMeta}>Voice · TEST MODE</Text>
+      </View>
+      <Text style={[styles.stageTitle, phone && styles.stageTitlePhone, DISPLAY]}>
+        Occupation Friday 11:00. CoC Thursday 09:00.
+      </Text>
+      <View style={styles.stageRule} />
+      <View style={styles.stageRow}>
+        <IconMinutes size={16} color="rgba(245,245,245,0.7)" label="" />
+        <Text style={styles.stageItem}>Keys only after the meter photo</Text>
+      </View>
+      <View style={styles.stageRow}>
+        <IconActions size={16} color="rgba(245,245,245,0.7)" label="" />
+        <Text style={styles.stageItem}>Pack to Lesedi and the bank by 16:00</Text>
+      </View>
+      <View style={styles.stageRow}>
+        <IconEmail size={16} color="rgba(245,245,245,0.7)" label="" />
+        <Text style={styles.stageItem}>One email. Not a chat dump.</Text>
+      </View>
+    </View>
+  );
+
   return (
     <SiteChrome active="home">
-      <View style={[styles.hero, split && styles.heroSplit]}>
+      <View style={[styles.hero, desktop && styles.split, phone && styles.heroPhone]}>
         <View style={styles.heroCopy}>
           <SectionLabel>{`${COMPANY.name}  ·  ${PRODUCT.name}  ·  TEST MODE`}</SectionLabel>
           <Text
             accessibilityRole="header"
             {...({ accessibilityLevel: 1 } as object)}
-            style={[styles.h1, !split && styles.h1Compact, DISPLAY]}
+            style={[styles.h1, tablet && styles.h1Tablet, phone && styles.h1Phone, DISPLAY]}
           >
             Every WhatsApp Business call, written down.
           </Text>
-          <Text style={styles.lede}>
+          <Text style={[styles.lede, phone && styles.ledePhone]}>
             {PRODUCT.name} sits on the number they already call. When the line goes dead you still
             have the transcript, the decisions, and the action list — so the work leaves the phone.
           </Text>
@@ -183,55 +209,57 @@ export function LandingScreen() {
         </View>
 
         <View style={styles.heroVisual}>
-          <Image
-            source={heroDesk}
-            style={[styles.heroPhoto, !split && styles.heroPhotoCompact, { opacity: 1, zIndex: 1 }]}
-            resizeMode="cover"
-            accessibilityLabel="Desk after a business voice call: phone down, minutes printed beside it"
+          <FittedScene
+            ratio={5 / 4}
+            render={(w, h) => (
+              <SceneHeroDesk
+                width={w}
+                height={h}
+                label="Illustration of a night desk after a voice call: phone, minutes sheet, lamp. Original SVG, not a photograph."
+              />
+            )}
           />
-          <View style={[styles.stage, LIQUID]} accessibilityLabel="Minutes after hang-up">
-            <View style={styles.stageTop}>
-              <Text style={styles.stageLive}>After hang-up</Text>
-              <Text style={styles.stageMeta}>Voice · TEST MODE</Text>
-            </View>
-            <Text style={[styles.stageTitle, DISPLAY]}>Occupation Friday 11:00. CoC Thursday 09:00.</Text>
-            <View style={styles.stageRule} />
-            <View style={styles.stageRow}>
-              <IconMinutes size={16} color="rgba(245,245,245,0.7)" label="" />
-              <Text style={styles.stageItem}>Keys only after the meter photo</Text>
-            </View>
-            <View style={styles.stageRow}>
-              <IconActions size={16} color="rgba(245,245,245,0.7)" label="" />
-              <Text style={styles.stageItem}>Pack to Lesedi and the bank by 16:00</Text>
-            </View>
-            <View style={styles.stageRow}>
-              <IconEmail size={16} color="rgba(245,245,245,0.7)" label="" />
-              <Text style={styles.stageItem}>One email. Not a chat dump.</Text>
-            </View>
-          </View>
+          {desktop ? stageCard : null}
         </View>
       </View>
+      {!desktop ? stageCard : null}
 
       <LandingReveal>
-        <View style={styles.statementBlock}>
-          <Text style={[styles.statement, !wide && styles.statementCompact, DISPLAY]}>
+        <View style={[styles.statementBlock, phone && styles.statementBlockPhone]}>
+          <Text
+            style={[
+              styles.statement,
+              tablet && styles.statementTablet,
+              phone && styles.statementPhone,
+              DISPLAY,
+            ]}
+          >
             Voice is how South African businesses close. Paper is how they lose it.
           </Text>
         </View>
       </LandingReveal>
 
       <LandingReveal>
-        <View style={styles.section}>
+        <View style={[styles.section, phone && styles.sectionPhone]}>
           <SectionLabel>How it works</SectionLabel>
-          <Text accessibilityRole="header" {...({ accessibilityLevel: 2 } as object)} style={[styles.h2, DISPLAY]}>
+          <Text
+            accessibilityRole="header"
+            {...({ accessibilityLevel: 2 } as object)}
+            style={[styles.h2, phone && styles.h2Phone, DISPLAY]}
+          >
             Four beats. Same afternoon.
           </Text>
-          <View style={[styles.howWrap, split && styles.howWrapSplit]}>
+          <View style={[styles.howWrap, desktop && styles.split]}>
             <View style={styles.sceneHold}>
-              <SceneCallToMinutes
-                width={sceneW}
-                height={sceneH}
-                label="Original illustration: handset and conversation bubble becoming a minutes sheet. Not a WhatsApp trademark logo."
+              <FittedScene
+                ratio={16 / 9}
+                render={(w, h) => (
+                  <SceneCallToMinutes
+                    width={w}
+                    height={h}
+                    label="Original illustration: handset and conversation bubble becoming a minutes sheet. Not a WhatsApp trademark logo."
+                  />
+                )}
               />
             </View>
             <View style={styles.beatCol}>
@@ -253,18 +281,28 @@ export function LandingScreen() {
       </LandingReveal>
 
       <LandingReveal>
-        <View style={styles.section}>
+        <View style={[styles.section, phone && styles.sectionPhone]}>
           <SectionLabel>The product</SectionLabel>
-          <Text accessibilityRole="header" {...({ accessibilityLevel: 2 } as object)} style={[styles.h2, DISPLAY]}>
+          <Text
+            accessibilityRole="header"
+            {...({ accessibilityLevel: 2 } as object)}
+            style={[styles.h2, phone && styles.h2Phone, DISPLAY]}
+          >
             A workspace on the number they already save.
           </Text>
-          <View style={[styles.productSplit, split && styles.heroSplit]}>
-            <Image
-            source={minutesDesk}
-            style={[styles.productPhoto, !split && styles.productPhotoCompact, { opacity: 1, zIndex: 1 }]}
-            resizeMode="cover"
-              accessibilityLabel="Laptop showing a dark minutes workspace with transcript, decisions, and a draft email"
-            />
+          <View style={[styles.productSplit, desktop && styles.split]}>
+            <View style={styles.sceneHold}>
+              <FittedScene
+                ratio={3 / 2}
+                render={(w, h) => (
+                  <SceneWorkspace
+                    width={w}
+                    height={h}
+                    label="Original illustration of the Meeting Pro workspace: transcript, minutes, and a draft email."
+                  />
+                )}
+              />
+            </View>
             <View style={styles.productCopy}>
               <Text style={styles.bodyWide}>
                 {PRODUCT.name} is minutes for WhatsApp Business calling — not another meeting bot.
@@ -273,7 +311,10 @@ export function LandingScreen() {
               </Text>
               <View style={styles.productGrid}>
                 {PRODUCTS.map((p) => (
-                  <View key={p.title} style={[styles.productTile, LIQUID]}>
+                  <View
+                    key={p.title}
+                    style={[styles.productTile, phone && styles.productTilePhone, LIQUID]}
+                  >
                     <IconWell>
                       <p.Icon size={20} label={p.title} />
                     </IconWell>
@@ -288,41 +329,41 @@ export function LandingScreen() {
       </LandingReveal>
 
       <LandingReveal>
-        <View style={styles.section}>
+        <View style={[styles.section, phone && styles.sectionPhone]}>
           <SectionLabel>Who it is for</SectionLabel>
-          <Text accessibilityRole="header" {...({ accessibilityLevel: 2 } as object)} style={[styles.h2, DISPLAY]}>
+          <Text
+            accessibilityRole="header"
+            {...({ accessibilityLevel: 2 } as object)}
+            style={[styles.h2, phone && styles.h2Phone, DISPLAY]}
+          >
             Teams whose real CRM is a chat list.
           </Text>
-          <View style={styles.whoFrame}>
-            <Image
-            source={operatorDesk}
-            style={[styles.whoPhoto, !wide && styles.whoPhotoCompact, { opacity: 1, zIndex: 1 }]}
-            resizeMode="cover"
-              accessibilityLabel="Operator answering a business voice call at a night desk, dark workspace on screen"
-            />
-            <View style={styles.whoCards}>
-              <View style={[styles.whoCard, LIQUID]}>
-                <Text style={[styles.forTitle, DISPLAY]}>Property desks</Text>
-                <Text style={styles.body}>Handovers, deposits, occupation dates that cannot live in someone’s head.</Text>
-              </View>
-              <View style={[styles.whoCard, LIQUID]}>
-                <Text style={[styles.forTitle, DISPLAY]}>Agencies</Text>
-                <Text style={styles.body}>Voice briefings that still need a pack the client can forward.</Text>
-              </View>
-              <View style={[styles.whoCard, LIQUID]}>
-                <Text style={[styles.forTitle, DISPLAY]}>Owner-operators</Text>
-                <Text style={styles.body}>You cannot sit in every call. You still have to own what was agreed.</Text>
-              </View>
+          <View style={[styles.whoCards, tablet && styles.whoCardsTablet]}>
+            <View style={[styles.whoCard, LIQUID]}>
+              <Text style={[styles.forTitle, phone && styles.forTitlePhone, DISPLAY]}>Property desks</Text>
+              <Text style={styles.body}>Handovers, deposits, occupation dates that cannot live in someone’s head.</Text>
+            </View>
+            <View style={[styles.whoCard, LIQUID]}>
+              <Text style={[styles.forTitle, phone && styles.forTitlePhone, DISPLAY]}>Agencies</Text>
+              <Text style={styles.body}>Voice briefings that still need a pack the client can forward.</Text>
+            </View>
+            <View style={[styles.whoCard, LIQUID]}>
+              <Text style={[styles.forTitle, phone && styles.forTitlePhone, DISPLAY]}>Owner-operators</Text>
+              <Text style={styles.body}>You cannot sit in every call. You still have to own what was agreed.</Text>
             </View>
           </View>
         </View>
       </LandingReveal>
 
       <LandingReveal>
-        <View style={[styles.section, split && styles.heroSplit]}>
+        <View style={[styles.section, desktop && styles.split, phone && styles.sectionPhone]}>
           <View style={styles.heroCopy}>
             <SectionLabel>What leaves the desk</SectionLabel>
-            <Text accessibilityRole="header" {...({ accessibilityLevel: 2 } as object)} style={[styles.h2, DISPLAY]}>
+            <Text
+              accessibilityRole="header"
+              {...({ accessibilityLevel: 2 } as object)}
+              style={[styles.h2, phone && styles.h2Phone, DISPLAY]}
+            >
               The pack, not the chat dump.
             </Text>
             <Text style={styles.bodyWide}>
@@ -330,11 +371,18 @@ export function LandingScreen() {
               Business. The record should not.
             </Text>
           </View>
-          <SceneEmailPack
-            width={Math.min(sceneW, 480)}
-            height={Math.round(Math.min(sceneW, 480) * 0.58)}
-            label="Original illustration of a minutes sheet becoming an email pack"
-          />
+          <View style={styles.sceneHold}>
+            <FittedScene
+              ratio={12 / 7}
+              render={(w, h) => (
+                <SceneEmailPack
+                  width={w}
+                  height={h}
+                  label="Original illustration of a minutes sheet becoming an email pack"
+                />
+              )}
+            />
+          </View>
         </View>
       </LandingReveal>
 
@@ -360,14 +408,14 @@ export function LandingScreen() {
       </LandingReveal>
 
       <LandingReveal>
-        <View style={[styles.price, split && styles.heroSplit]}>
+        <View style={[styles.price, desktop && styles.split, phone && styles.pricePhone]}>
           <View style={styles.heroCopy}>
             <SectionLabel>Price</SectionLabel>
             <View style={styles.priceFigureRow}>
               <Text
                 accessibilityRole="header"
                 {...({ accessibilityLevel: 2 } as object)}
-                style={[styles.priceFigure, DISPLAY]}
+                style={[styles.priceFigure, phone && styles.priceFigurePhone, DISPLAY]}
               >
                 R{LEGAL.priceZar}
               </Text>
@@ -390,44 +438,41 @@ export function LandingScreen() {
 
 const styles = StyleSheet.create({
   hero: {
-    gap: 36,
-    paddingTop: 12,
-    paddingBottom: 48,
+    gap: 28,
+    paddingTop: 8,
+    paddingBottom: 32,
   },
-  heroSplit: {
+  heroPhone: {
+    gap: 20,
+    paddingBottom: 16,
+  },
+  split: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 40,
+    gap: 36,
   },
-  heroCopy: { flex: 1.05, gap: 16, minWidth: 240 },
+  heroCopy: { flex: 1.05, gap: 14, minWidth: 0 },
   heroVisual: {
-    flex: 1.15,
-    minWidth: 260,
+    flex: 1.05,
+    minWidth: 0,
     position: 'relative',
   },
-  heroPhoto: {
-    width: '100%',
-    height: 420,
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  heroPhotoCompact: { height: 280 },
   kicker: {
     color: 'rgba(245,245,245,0.55)',
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 2.4,
+    letterSpacing: 2,
     textTransform: 'uppercase',
   },
   h1: {
     color: palette.text,
-    fontSize: 56,
+    fontSize: 52,
     fontWeight: '500',
-    letterSpacing: -1.6,
-    lineHeight: 62,
+    letterSpacing: -1.5,
+    lineHeight: 58,
   },
-  h1Compact: { fontSize: 36, lineHeight: 40, letterSpacing: -1 },
+  h1Tablet: { fontSize: 40, lineHeight: 46, letterSpacing: -1 },
+  h1Phone: { fontSize: 30, lineHeight: 36, letterSpacing: -0.8 },
   h2: {
     color: palette.text,
     fontSize: 32,
@@ -438,6 +483,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 8,
   },
+  h2Phone: { fontSize: 24, lineHeight: 30, letterSpacing: -0.4 },
   lede: {
     color: 'rgba(245,245,245,0.72)',
     fontSize: 18,
@@ -445,6 +491,7 @@ const styles = StyleSheet.create({
     maxWidth: 520,
     fontWeight: '400',
   },
+  ledePhone: { fontSize: 16, lineHeight: 24 },
   body: { color: palette.textSecondary, fontSize: 16, lineHeight: 26 },
   bodyWide: {
     color: palette.textSecondary,
@@ -455,7 +502,7 @@ const styles = StyleSheet.create({
   },
   ctaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
   fine: { color: palette.textMuted, fontSize: FONT.sm, lineHeight: 20, maxWidth: 420 },
-  iconStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 },
+  iconStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   iconWell: {
     width: 44,
     height: 44,
@@ -480,6 +527,13 @@ const styles = StyleSheet.create({
     borderColor: GLASS.border.rim,
     borderRadius: 20,
   },
+  stageFlow: {
+    position: 'relative',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    marginTop: 12,
+  },
   stageTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
   stageLive: {
     color: '#86EFAC',
@@ -496,6 +550,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     letterSpacing: -0.3,
   },
+  stageTitlePhone: { fontSize: 17, lineHeight: 23 },
   stageRule: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: 'rgba(255,255,255,0.14)',
@@ -509,6 +564,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.1)',
   },
+  statementBlockPhone: { paddingVertical: 32 },
   statement: {
     color: palette.text,
     fontSize: 36,
@@ -517,18 +573,19 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     maxWidth: 880,
   },
-  statementCompact: { fontSize: 26, lineHeight: 32, letterSpacing: -0.4 },
+  statementTablet: { fontSize: 28, lineHeight: 36 },
+  statementPhone: { fontSize: 22, lineHeight: 28, letterSpacing: -0.3 },
   section: {
     paddingTop: 72,
     paddingBottom: 8,
     gap: 8,
   },
-  howWrap: { gap: 28, marginTop: 12 },
-  howWrapSplit: { flexDirection: 'row', alignItems: 'center', gap: 36 },
-  sceneHold: { flex: 1.1, minWidth: 240 },
-  beatCol: { flex: 1, gap: 18, minWidth: 240 },
-  beatRow: { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
-  beatCopy: { flex: 1, gap: 4 },
+  sectionPhone: { paddingTop: 40 },
+  howWrap: { gap: 24, marginTop: 12 },
+  sceneHold: { flex: 1.1, minWidth: 0 },
+  beatCol: { flex: 1, gap: 16, minWidth: 0 },
+  beatRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  beatCopy: { flex: 1, gap: 4, minWidth: 0 },
   beatN: {
     color: 'rgba(245,245,245,0.4)',
     fontSize: 11,
@@ -536,17 +593,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   whyTitle: { color: palette.text, fontSize: 18, fontWeight: '600', lineHeight: 24, letterSpacing: -0.2 },
-  productSplit: { gap: 28, marginTop: 8 },
-  productPhoto: {
-    flex: 1,
-    minWidth: 240,
-    height: 380,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  productPhotoCompact: { height: 240 },
-  productCopy: { flex: 1, gap: 12, minWidth: 240 },
+  productSplit: { gap: 24, marginTop: 8 },
+  productCopy: { flex: 1, gap: 12, minWidth: 0 },
   productGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   productTile: {
     width: '47%',
@@ -558,17 +606,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: GLASS.border.rim,
   },
-  helpTitle: { color: palette.text, fontSize: 16, fontWeight: '600' },
-  whoFrame: { marginTop: 8, gap: 16 },
-  whoPhoto: {
+  productTilePhone: {
     width: '100%',
-    height: 340,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    minWidth: 0,
   },
-  whoPhotoCompact: { height: 220 },
-  whoCards: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  helpTitle: { color: palette.text, fontSize: 16, fontWeight: '600' },
+  whoCards: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 },
+  whoCardsTablet: { flexDirection: 'column' },
   whoCard: {
     flexGrow: 1,
     minWidth: 200,
@@ -580,7 +624,8 @@ const styles = StyleSheet.create({
     borderColor: GLASS.border.rim,
   },
   forTitle: { color: palette.text, fontSize: 24, fontWeight: '500', letterSpacing: -0.5, lineHeight: 28 },
-  exampleSection: { paddingTop: 56, maxWidth: 520 },
+  forTitlePhone: { fontSize: 20, lineHeight: 24 },
+  exampleSection: { paddingTop: 56, maxWidth: 520, width: '100%' },
   example: {
     gap: 10,
     padding: 20,
@@ -606,6 +651,7 @@ const styles = StyleSheet.create({
     paddingTop: 72,
     paddingBottom: 24,
   },
+  pricePhone: { paddingTop: 40, gap: 16 },
   priceFigureRow: { flexDirection: 'row', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' },
   priceFigure: {
     color: palette.text,
@@ -614,6 +660,7 @@ const styles = StyleSheet.create({
     letterSpacing: -2,
     lineHeight: 76,
   },
+  priceFigurePhone: { fontSize: 48, lineHeight: 52, letterSpacing: -1.2 },
   priceUnit: {
     fontSize: 22,
     color: palette.textSecondary,
@@ -621,5 +668,5 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     paddingBottom: 10,
   },
-  priceCta: { flex: 0.7, gap: 12, minWidth: 220, justifyContent: 'center' },
+  priceCta: { flex: 0.7, gap: 12, minWidth: 0, justifyContent: 'center' },
 });

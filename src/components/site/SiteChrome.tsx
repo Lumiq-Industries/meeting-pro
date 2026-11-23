@@ -24,9 +24,13 @@ type Props = {
 
 export function SiteChrome({ children, active }: Props) {
   const { width } = useWindowDimensions();
-  const compact = width < 720;
+  const phone = width < 600;
+  const tablet = width >= 600 && width < 1024;
+  const compact = width < 1024;
   const { isSignedIn } = useAuth();
   const reduceMotion = useReducedMotion();
+  const padH = phone ? 16 : tablet ? 28 : 32;
+  const colMax = phone ? 640 : tablet ? 720 : 1120;
 
   useEffect(() => {
     injectPublicSiteCss();
@@ -66,7 +70,9 @@ export function SiteChrome({ children, active }: Props) {
         <View
           style={[
             styles.nav,
-            compact && styles.navCompact,
+            { paddingHorizontal: padH },
+            phone && styles.navPhone,
+            tablet && styles.navTablet,
             webOnlyStyle({
               background:
                 'linear-gradient(180deg, rgba(8,8,8,0.72) 0%, rgba(8,8,8,0.42) 100%)',
@@ -75,33 +81,47 @@ export function SiteChrome({ children, active }: Props) {
             }),
           ]}
         >
-          <Pressable
-            accessibilityRole="link"
-            accessibilityLabel={`${COMPANY.name} ${PRODUCT.name} home`}
-            {...(Platform.OS === 'web' ? { href: '/' } : {})}
-            onPress={() => openSitePath('/')}
-            style={styles.brand}
-          >
-            <MeetingProMark size={compact ? 32 : 36} framed />
-            <View>
-              <Text
-                style={[
-                  styles.brandName,
-                  webOnlyStyle({
-                    fontFamily:
-                      '"Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif',
-                  }),
-                ]}
+          <View style={[styles.navTop, phone && styles.navTopPhone]}>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={`${COMPANY.name} ${PRODUCT.name} home`}
+              {...(Platform.OS === 'web' ? { href: '/' } : {})}
+              onPress={() => openSitePath('/')}
+              style={styles.brand}
+            >
+              <MeetingProMark size={phone ? 30 : 36} framed />
+              <View>
+                <Text
+                  style={[
+                    styles.brandName,
+                    phone && styles.brandNamePhone,
+                    webOnlyStyle({
+                      fontFamily:
+                        '"Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif',
+                    }),
+                  ]}
+                >
+                  {COMPANY.name}
+                </Text>
+                <Text style={styles.brandSub}>{PRODUCT.name}</Text>
+              </View>
+            </Pressable>
+            {phone ? (
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel={navCta}
+                {...(Platform.OS === 'web' ? { href: '/app' } : {})}
+                onPress={() => openSitePath('/app')}
+                style={styles.navCtaCompact}
               >
-                {COMPANY.name}
-              </Text>
-              <Text style={styles.brandSub}>{PRODUCT.name}</Text>
-            </View>
-          </Pressable>
+                <Text style={styles.navCtaCompactText}>{isSignedIn ? 'Workspace' : 'Sign in'}</Text>
+              </Pressable>
+            ) : null}
+          </View>
           <View
             accessibilityRole="navigation"
             accessibilityLabel="Site"
-            style={[styles.navLinks, compact && styles.navLinksWrap]}
+            style={[styles.navLinks, phone && styles.navLinksPhone]}
           >
             <SiteLink href="/" style={[styles.link, active === 'home' && styles.linkOn]}>
               Product
@@ -112,7 +132,7 @@ export function SiteChrome({ children, active }: Props) {
             <SiteLink href="/terms" style={[styles.link, active === 'terms' && styles.linkOn]}>
               Terms
             </SiteLink>
-            {compact ? (
+            {!phone && compact ? (
               <Pressable
                 accessibilityRole="link"
                 accessibilityLabel={navCta}
@@ -122,9 +142,8 @@ export function SiteChrome({ children, active }: Props) {
               >
                 <Text style={styles.navCtaCompactText}>{isSignedIn ? 'Workspace' : 'Sign in'}</Text>
               </Pressable>
-            ) : (
-              <SiteCta label={navCta} />
-            )}
+            ) : null}
+            {!compact ? <SiteCta label={navCta} /> : null}
           </View>
         </View>
 
@@ -136,11 +155,11 @@ export function SiteChrome({ children, active }: Props) {
           <View
             accessibilityRole="summary"
             nativeID="main-content"
-            style={[styles.column, { maxWidth: compact ? 640 : 1120 }]}
+            style={[styles.column, { maxWidth: colMax, paddingHorizontal: padH }]}
           >
             {children}
           </View>
-          <View style={[styles.footer, { maxWidth: compact ? 640 : 1120 }]}>
+          <View style={[styles.footer, { maxWidth: colMax, paddingHorizontal: padH }]}>
             <Text
               style={[
                 styles.footLockup,
@@ -188,20 +207,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(255,255,255,0.08)',
     gap: SPACING.md,
   },
-  navCompact: { flexWrap: 'wrap' },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 },
+  navPhone: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: 4,
+  },
+  navTablet: { flexWrap: 'wrap' },
+  navTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  navTopPhone: { justifyContent: 'space-between' },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44, flexShrink: 1 },
   brandName: {
     color: palette.text,
     fontSize: 20,
     fontWeight: '500',
     letterSpacing: 1.4,
   },
+  brandNamePhone: { fontSize: 16, letterSpacing: 1 },
   brandSub: {
     color: palette.textMuted,
     fontSize: FONT.xs,
@@ -210,8 +236,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 2,
   },
-  navLinks: { flexDirection: 'row', alignItems: 'center', gap: 22 },
-  navLinksWrap: { flexWrap: 'wrap', gap: 14 },
+  navLinks: { flexDirection: 'row', alignItems: 'center', gap: 22, flexShrink: 1 },
+  navLinksPhone: { justifyContent: 'space-between', gap: 8, width: '100%' },
   link: {
     color: palette.textSecondary,
     fontSize: 13,
@@ -234,13 +260,11 @@ const styles = StyleSheet.create({
   scrollInner: { paddingBottom: 80, alignItems: 'center' },
   column: {
     width: '100%',
-    paddingHorizontal: SPACING.lg,
-    paddingTop: 28,
+    paddingTop: 20,
     gap: 0,
   },
   footer: {
     width: '100%',
-    paddingHorizontal: SPACING.lg,
     paddingTop: 72,
     paddingBottom: 32,
     gap: 10,

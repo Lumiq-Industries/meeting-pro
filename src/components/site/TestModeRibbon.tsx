@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: SPACING.sm,
-    paddingHorizontal: SPACING.lg,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     backgroundColor: 'rgba(0, 0, 0, 0.35)',
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -39,6 +39,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     flexShrink: 1,
     flex: 1,
-    minWidth: 220,
+    minWidth: 0,
   },
 });

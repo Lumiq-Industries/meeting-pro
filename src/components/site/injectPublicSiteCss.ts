@@ -33,12 +33,23 @@ export function injectPublicSiteCss(): void {
     html, body, #root {
       background: #000;
       min-height: 100%;
+      overflow-x: hidden;
+      max-width: 100%;
     }
 
-    /* RN-web Image uses opacity 0 + z-index -1 until a load handler; both can stick. */
+    /* RN-web Image uses opacity 0 + z-index -1 until a load handler; both can stick.
+       Never stretch bitmaps: cover crop inside the box, keep aspect. */
     img {
       opacity: 1 !important;
       z-index: 1 !important;
+      object-fit: cover !important;
+      object-position: center center !important;
+      max-width: 100%;
+    }
+
+    svg {
+      max-width: 100%;
+      display: block;
     }
 
     ::selection {
