@@ -13,6 +13,7 @@ import { useWorkspace } from '../contexts/WorkspaceContext';
 import { DATA_SOURCE } from './transcriptSource';
 import { demoTranscripts } from './demoTranscripts';
 import { demoCallRecords } from './demoCallRecords';
+import { subscribeWorkspaceRefresh } from './workspaceRefresh';
 
 // Every figure is `| null`, and null means "we do not know" — a query that
 // failed, or one that has not run. It is never rendered as 0.
@@ -94,6 +95,8 @@ export function useDashboardStats(): DashboardState {
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
   const reload = useCallback(() => setNonce((n) => n + 1), []);
+
+  useEffect(() => subscribeWorkspaceRefresh(reload), [reload]);
 
   useEffect(() => {
     if (DATA_SOURCE === 'mock') return;

@@ -13,10 +13,12 @@
 // open decisions stay visible rather than disappearing into the code.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSupabase } from '../contexts/SupabaseContext';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import { getActiveSupabaseClient } from '../lib/supabaseRef';
 import type { Database } from '../lib/database.types';
 import { SPEAKER_COLORS } from '../constants/theme';
 import * as demo from './demoTranscripts';
+import { subscribeWorkspaceRefresh } from './workspaceRefresh';
 import type {
   ActionItem,
   Speaker,
@@ -213,6 +215,15 @@ function mapSegments(rows: NonNullable<DbRow['transcript_segments']>): {
   return { segments, speakers: [...speakers.values()] };
 }
 
+function mergeTestTranscripts(remote: Transcript[]): Transcript[] {
+  const byId = new Map<string, Transcript>();
+  for (const t of remote) byId.set(t.id, t);
+  for (const t of demo.demoTranscripts) {
+    if (!byId.has(t.id)) byId.set(t.id, t);
+  }
+  return [...byId.values()].sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+}
+
 function toTranscript(row: DbRow): { transcript: Transcript; speakers: Speaker[] } {
   const call = row.calls;
   const mapped = row.transcript_segments ? mapSegments(row.transcript_segments) : null;
@@ -264,21 +275,28 @@ interface ListState {
 
 export function useTranscripts(): ListState {
   const supabase = useSupabase();
+  const { isDemoData } = useWorkspace();
   const listChannelScope = useRef(`tr-${Math.random().toString(36).slice(2, 11)}`);
   const [transcripts, setTranscripts] = useState<Transcript[]>(
-    DATA_SOURCE === 'mock' ? demo.demoTranscripts : []
+    DATA_SOURCE === 'mock' || isDemoData ? demo.demoTranscripts : []
   );
-  const [loading, setLoading] = useState(DATA_SOURCE === 'supabase');
+  const [loading, setLoading] = useState(DATA_SOURCE === 'supabase' && !isDemoData);
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
   const reload = useCallback(() => setNonce((n) => n + 1), []);
 
+  useEffect(() => subscribeWorkspaceRefresh(reload), [reload]);
+
   useEffect(() => {
-    if (DATA_SOURCE === 'mock') return;
+    if (DATA_SOURCE === 'mock') {
+      setTranscripts(demo.demoTranscripts);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
 
     const load = async (showSpinner: boolean) => {
-      if (showSpinner) setLoading(true);
+      if (showSpinner && !isDemoData) setLoading(true);
       const { data, error: err } = await supabase
         .from('transcripts')
         .select(LIST_SELECT)
@@ -287,29 +305,39 @@ export function useTranscripts(): ListState {
       if (cancelled) return;
       if (err) {
         setError(err.message);
-        setTranscripts([]);
+        setTranscripts(isDemoData ? mergeTestTranscripts([]) : []);
       } else {
         setError(null);
         const rows = (data ?? []) as unknown as DbRow[];
-        setTranscripts(rows.map((r) => toTranscript(r).transcript));
+        const mapped = rows.map((r) => toTranscript(r).transcript);
+        setTranscripts(isDemoData ? mergeTestTranscripts(mapped) : mapped);
       }
       setLoading(false);
     };
 
     load(true);
 
-    const channel = supabase
-      .channel(`meeting-pro-transcripts-list-${listChannelScope.current}-${nonce}`)
+    const scope = listChannelScope.current;
+    const transcriptsChannel = supabase
+      .channel(`meeting-pro-transcripts-list-${scope}-${nonce}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'transcripts' }, () => {
+        load(false);
+      })
+      .subscribe();
+
+    const callsChannel = supabase
+      .channel(`meeting-pro-transcripts-calls-${scope}-${nonce}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'calls' }, () => {
         load(false);
       })
       .subscribe();
 
     return () => {
       cancelled = true;
-      supabase.removeChannel(channel);
+      supabase.removeChannel(transcriptsChannel);
+      supabase.removeChannel(callsChannel);
     };
-  }, [nonce, supabase]);
+  }, [nonce, supabase, isDemoData]);
 
   return { transcripts, loading, error, source: DATA_SOURCE, reload };
 }
@@ -325,19 +353,21 @@ interface DetailState {
 
 export function useTranscript(id: string): DetailState {
   const supabase = useSupabase();
-  const [transcript, setTranscript] = useState<Transcript | undefined>(
-    DATA_SOURCE === 'mock' ? demo.getDemoTranscriptById(id) : undefined
-  );
+  const { isDemoData } = useWorkspace();
+  const seeded = DATA_SOURCE === 'mock' || isDemoData ? demo.getDemoTranscriptById(id) : undefined;
+  const [transcript, setTranscript] = useState<Transcript | undefined>(seeded);
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
-  const [loading, setLoading] = useState(DATA_SOURCE === 'supabase');
+  const [loading, setLoading] = useState(DATA_SOURCE === 'supabase' && !isDemoData);
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
   const reload = useCallback(() => setNonce((n) => n + 1), []);
 
+  useEffect(() => subscribeWorkspaceRefresh(reload), [reload]);
+
   useEffect(() => {
     if (DATA_SOURCE === 'mock') return;
     let cancelled = false;
-    setLoading(true);
+    if (!isDemoData) setLoading(true);
     supabase
       .from('transcripts')
       .select(DETAIL_SELECT)
@@ -345,34 +375,34 @@ export function useTranscript(id: string): DetailState {
       .maybeSingle()
       .then(({ data, error: err }) => {
         if (cancelled) return;
+        const fallback = isDemoData ? demo.getDemoTranscriptById(id) : undefined;
         if (err) {
           setError(err.message);
-          setTranscript(undefined);
+          setTranscript(fallback);
         } else if (data) {
           const mapped = toTranscript(data as unknown as DbRow);
           setError(null);
           setTranscript(mapped.transcript);
           setSpeakers(mapped.speakers);
         } else {
-          // No row: either it does not exist or RLS hid it. Deliberately the same
-          // outcome, so the app never confirms a transcript exists to someone who
-          // may not see it.
+          // No row: either it does not exist or RLS hid it. TEST MODE still shows
+          // seeded minutes so a downed remote DB does not empty the archive.
           setError(null);
-          setTranscript(undefined);
+          setTranscript(fallback);
         }
         setLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [id, nonce, supabase]);
+  }, [id, nonce, supabase, isDemoData]);
 
   const getSpeakerById = useCallback(
     (speakerId: string) =>
-      DATA_SOURCE === 'mock'
-        ? demo.getDemoSpeakerById(speakerId)
+      DATA_SOURCE === 'mock' || isDemoData
+        ? demo.getDemoSpeakerById(speakerId) ?? speakers.find((s) => s.id === speakerId)
         : speakers.find((s) => s.id === speakerId),
-    [speakers]
+    [speakers, isDemoData]
   );
 
   return { transcript, loading, error, source: DATA_SOURCE, getSpeakerById, reload };

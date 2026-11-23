@@ -1,4 +1,11 @@
 import type { CallRecord } from './callHistory';
+import {
+  EVENING_VOICE_CALL_ID,
+  EVENING_VOICE_DURATION_SECONDS,
+  EVENING_VOICE_HOUR,
+  EVENING_VOICE_MINUTE,
+  EVENING_VOICE_TRANSCRIPT_ID,
+} from './eveningVoiceCall';
 
 /** Local wall-clock timestamp `daysAgo` days before today — keeps the 7-day chart current. */
 function testStartedAt(daysAgo: number, hour: number, minute: number): string {
@@ -10,6 +17,17 @@ function testStartedAt(daysAgo: number, hour: number, minute: number): string {
 
 /** TEST MODE call log (mock DATA_SOURCE and Khaya demonstration fallback). */
 export const demoCallRecords: CallRecord[] = [
+  {
+    id: EVENING_VOICE_CALL_ID,
+    counterparty: 'Bongani Dlamini',
+    direction: 'user_initiated',
+    startedAt: testStartedAt(0, EVENING_VOICE_HOUR, EVENING_VOICE_MINUTE),
+    durationSeconds: EVENING_VOICE_DURATION_SECONDS,
+    status: 'COMPLETED',
+    transcriptId: EVENING_VOICE_TRANSCRIPT_ID,
+    transcriptTitle: 'Melville 4C — after-hours ceiling leak',
+    transcriptState: 'ready',
+  },
   {
     id: 'c-test-sandton',
     counterparty: 'Lesedi Mokoena',
@@ -115,6 +133,7 @@ export type DemoBusinessOutcome = 'positive' | 'neutral' | 'negative';
 
 /** Outcome labels for TEST MODE transcripts / calls (mock and Khaya demonstration). */
 export const demoCallOutcomes: Record<string, DemoBusinessOutcome> = {
+  [EVENING_VOICE_CALL_ID]: 'positive',
   'c-test-sandton': 'positive',
   c1: 'positive',
   c2: 'neutral',

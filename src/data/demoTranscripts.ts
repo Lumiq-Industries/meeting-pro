@@ -1,6 +1,7 @@
 import { Speaker, Transcript } from '../types';
 import { SPEAKER_COLORS } from '../constants/theme';
 import { TEST_CALL_SPEAKERS, TEST_CALL_TRANSCRIPT } from './testCall';
+import { EVENING_VOICE_SPEAKERS, EVENING_VOICE_TRANSCRIPT } from './eveningVoiceCall';
 
 // Demo transcripts for EXPO_PUBLIC_DATA_SOURCE=mock.
 //
@@ -12,6 +13,7 @@ import { TEST_CALL_SPEAKERS, TEST_CALL_TRANSCRIPT } from './testCall';
 // The fake dashboard figures are gone for good. Nothing here is a count.
 export const demoSpeakers: Speaker[] = [
   ...TEST_CALL_SPEAKERS,
+  ...EVENING_VOICE_SPEAKERS,
   { id: 's1', name: 'Sarah M.', color: SPEAKER_COLORS[0] },
   { id: 's2', name: 'James K.', color: SPEAKER_COLORS[1] },
   { id: 's3', name: 'VILATECH Ops', color: SPEAKER_COLORS[2] },
@@ -19,6 +21,7 @@ export const demoSpeakers: Speaker[] = [
 ];
 
 export const demoTranscripts: Transcript[] = [
+  EVENING_VOICE_TRANSCRIPT,
   TEST_CALL_TRANSCRIPT,
   {
     id: 't1',

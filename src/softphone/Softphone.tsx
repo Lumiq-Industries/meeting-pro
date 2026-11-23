@@ -13,6 +13,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { COLORS, FONT, RADIUS, SPACING } from '../constants/theme';
 import { formatPhoneNumber } from '../data/businessProfile';
 import { answerOffer, openMicrophone, softphoneSupported, startRingtone, type CallLeg } from './webrtc';
+import { notifyWorkspaceRefreshSoon } from '../data/workspaceRefresh';
 
 const RING_WINDOW_MS = 75_000;
 const POLL_MS = 3_000;
@@ -106,6 +107,7 @@ export function Softphone() {
     legRef.current?.close();
     legRef.current = null;
     setPhase({ kind: 'ended', message });
+    notifyWorkspaceRefreshSoon();
     setTimeout(() => {
       if (phaseRef.current.kind === 'ended') setPhase({ kind: 'idle' });
     }, 3500);

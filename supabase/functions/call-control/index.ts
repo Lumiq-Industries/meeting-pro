@@ -182,7 +182,40 @@ Deno.serve(async (req: Request) => {
       .update({ ring_state: "connected", answered_at: now, transcription_enabled: gate.allowed })
       .eq("id", callId);
   } else if (action === "reject" || action === "terminate") {
-    await admin.from("calls").update({ ring_state: "ended" }).eq("id", callId);
+    const { data: row } = await admin
+      .from("calls")
+      .select("answered_at, started_at, transcription_enabled, business_id")
+      .eq("id", callId)
+      .maybeSingle();
+    const startIso = row?.answered_at ?? row?.started_at ?? null;
+    const durationSeconds = startIso
+      ? Math.max(0, Math.round((Date.now() - new Date(startIso).getTime()) / 1000))
+      : null;
+    await admin.from("calls").update({
+      ring_state: "ended",
+      ended_at: now,
+      status: action === "terminate" ? "COMPLETED" : "REJECTED",
+      ...(durationSeconds != null ? { duration_seconds: durationSeconds } : {}),
+    }).eq("id", callId);
+
+    // A pending transcript row makes the call visible in Archive immediately.
+    // Meta's call_transcription_available webhook upserts the same call_id later.
+    if (action === "terminate" && row?.transcription_enabled && row.business_id) {
+      const { error: pendingErr } = await admin.from("transcripts").insert({
+        business_id: row.business_id,
+        call_id: callId,
+        status: "pending",
+        summary_status: "pending",
+        title: "WhatsApp call",
+        duration_seconds: durationSeconds,
+      });
+      if (pendingErr && pendingErr.code !== "23505") {
+        console.error(JSON.stringify({
+          evt: "call_control.pending_transcript_failed",
+          message: pendingErr.message,
+        }));
+      }
+    }
   }
 
   return json({

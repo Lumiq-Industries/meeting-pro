@@ -11,6 +11,7 @@ import type { Database } from '../lib/database.types';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { DATA_SOURCE } from './transcriptSource';
 import { demoCallRecords } from './demoCallRecords';
+import { subscribeWorkspaceRefresh } from './workspaceRefresh';
 
 export type CallTranscriptState = 'ready' | 'failed' | 'waiting';
 
@@ -152,6 +153,8 @@ export function useCallHistory(): CallHistoryState {
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
   const reload = useCallback(() => setNonce((n) => n + 1), []);
+
+  useEffect(() => subscribeWorkspaceRefresh(reload), [reload]);
 
   useEffect(() => {
     if (DATA_SOURCE === 'mock') {
