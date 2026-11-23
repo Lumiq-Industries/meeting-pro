@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SiteChrome } from '../../components/site/SiteChrome';
 import { SiteCta } from '../../components/site/SiteCta';
 import { LandingReveal } from '../../components/site/LandingReveal';
@@ -24,7 +24,8 @@ import { COLORS, FONT } from '../../constants/theme';
 import { COMPANY, PRODUCT } from '../../constants/brand';
 import { LEGAL } from '../../constants/legal';
 import { GLASS } from '../../constants/glass';
-import { webOnlyStyle } from '../../utils/webStyles';
+import { webClass, webOnlyStyle } from '../../utils/webStyles';
+import { useSiteViewport } from '../../hooks/useSiteViewport';
 
 /**
  * Design direction
@@ -126,10 +127,7 @@ function IconWell({ children, tint }: { children: ReactNode; tint?: string }) {
 }
 
 export function LandingScreen() {
-  const { width } = useWindowDimensions();
-  const phone = width < 600;
-  const tablet = width >= 600 && width < 1024;
-  const desktop = width >= 1024;
+  const { phone, tablet, desktop } = useSiteViewport();
   const { isSignedIn } = useAuth();
   const cta = isSignedIn ? 'Open test workspace' : 'Sign in · TEST MODE';
 
@@ -139,7 +137,11 @@ export function LandingScreen() {
   );
 
   const stageCard = (
-    <View style={[styles.stage, !desktop && styles.stageFlow, LIQUID]} accessibilityLabel="Minutes after hang-up">
+    <View
+      {...webClass('vt-stage-desk')}
+      style={[styles.stage, !desktop && styles.stageFlow, LIQUID]}
+      accessibilityLabel="Minutes after hang-up"
+    >
       <View style={styles.stageTop}>
         <Text style={styles.stageLive}>After hang-up</Text>
         <Text style={styles.stageMeta}>Voice · TEST MODE</Text>
@@ -165,17 +167,18 @@ export function LandingScreen() {
 
   return (
     <SiteChrome active="home">
-      <View style={[styles.hero, desktop && styles.split, phone && styles.heroPhone]}>
+      <View {...webClass('vt-split')} style={[styles.hero, desktop && styles.split, phone && styles.heroPhone]}>
         <View style={styles.heroCopy}>
           <SectionLabel>{`${COMPANY.name}  ·  ${PRODUCT.name}  ·  TEST MODE`}</SectionLabel>
           <Text
             accessibilityRole="header"
             {...({ accessibilityLevel: 1 } as object)}
             style={[styles.h1, tablet && styles.h1Tablet, phone && styles.h1Phone, DISPLAY]}
+            {...webClass('vt-h1')}
           >
             Every WhatsApp Business call, written down.
           </Text>
-          <Text style={[styles.lede, phone && styles.ledePhone]}>
+          <Text style={[styles.lede, phone && styles.ledePhone]} {...webClass('vt-lede')}>
             {PRODUCT.name} sits on the number they already call. When the line goes dead you still
             have the transcript, the decisions, and the action list — so the work leaves the phone.
           </Text>
@@ -233,6 +236,7 @@ export function LandingScreen() {
               phone && styles.statementPhone,
               DISPLAY,
             ]}
+            {...webClass('vt-statement')}
           >
             Voice is how South African businesses close. Paper is how they lose it.
           </Text>
@@ -240,16 +244,17 @@ export function LandingScreen() {
       </LandingReveal>
 
       <LandingReveal>
-        <View style={[styles.section, phone && styles.sectionPhone]}>
+        <View {...webClass('vt-section')} style={[styles.section, phone && styles.sectionPhone]}>
           <SectionLabel>How it works</SectionLabel>
           <Text
             accessibilityRole="header"
             {...({ accessibilityLevel: 2 } as object)}
             style={[styles.h2, phone && styles.h2Phone, DISPLAY]}
+            {...webClass('vt-h2')}
           >
             Four beats. Same afternoon.
           </Text>
-          <View style={[styles.howWrap, desktop && styles.split]}>
+          <View {...webClass('vt-split')} style={[styles.howWrap, desktop && styles.split]}>
             <View style={styles.sceneHold}>
               <FittedScene
                 ratio={16 / 9}
@@ -281,16 +286,17 @@ export function LandingScreen() {
       </LandingReveal>
 
       <LandingReveal>
-        <View style={[styles.section, phone && styles.sectionPhone]}>
+        <View {...webClass('vt-section')} style={[styles.section, phone && styles.sectionPhone]}>
           <SectionLabel>The product</SectionLabel>
           <Text
             accessibilityRole="header"
             {...({ accessibilityLevel: 2 } as object)}
             style={[styles.h2, phone && styles.h2Phone, DISPLAY]}
+            {...webClass('vt-h2')}
           >
             A workspace on the number they already save.
           </Text>
-          <View style={[styles.productSplit, desktop && styles.split]}>
+          <View {...webClass('vt-split')} style={[styles.productSplit, desktop && styles.split]}>
             <View style={styles.sceneHold}>
               <FittedScene
                 ratio={3 / 2}
@@ -314,6 +320,7 @@ export function LandingScreen() {
                   <View
                     key={p.title}
                     style={[styles.productTile, phone && styles.productTilePhone, LIQUID]}
+                    {...webClass('vt-tile')}
                   >
                     <IconWell>
                       <p.Icon size={20} label={p.title} />
@@ -329,16 +336,17 @@ export function LandingScreen() {
       </LandingReveal>
 
       <LandingReveal>
-        <View style={[styles.section, phone && styles.sectionPhone]}>
+        <View {...webClass('vt-section')} style={[styles.section, phone && styles.sectionPhone]}>
           <SectionLabel>Who it is for</SectionLabel>
           <Text
             accessibilityRole="header"
             {...({ accessibilityLevel: 2 } as object)}
             style={[styles.h2, phone && styles.h2Phone, DISPLAY]}
+            {...webClass('vt-h2')}
           >
             Teams whose real CRM is a chat list.
           </Text>
-          <View style={[styles.whoCards, tablet && styles.whoCardsTablet]}>
+          <View {...webClass('vt-who-cards')} style={[styles.whoCards, tablet && styles.whoCardsTablet]}>
             <View style={[styles.whoCard, LIQUID]}>
               <Text style={[styles.forTitle, phone && styles.forTitlePhone, DISPLAY]}>Property desks</Text>
               <Text style={styles.body}>Handovers, deposits, occupation dates that cannot live in someone’s head.</Text>
@@ -356,13 +364,17 @@ export function LandingScreen() {
       </LandingReveal>
 
       <LandingReveal>
-        <View style={[styles.section, desktop && styles.split, phone && styles.sectionPhone]}>
+        <View
+          {...webClass('vt-split vt-section')}
+          style={[styles.section, desktop && styles.split, phone && styles.sectionPhone]}
+        >
           <View style={styles.heroCopy}>
             <SectionLabel>What leaves the desk</SectionLabel>
             <Text
               accessibilityRole="header"
               {...({ accessibilityLevel: 2 } as object)}
               style={[styles.h2, phone && styles.h2Phone, DISPLAY]}
+            {...webClass('vt-h2')}
             >
               The pack, not the chat dump.
             </Text>
@@ -408,7 +420,7 @@ export function LandingScreen() {
       </LandingReveal>
 
       <LandingReveal>
-        <View style={[styles.price, desktop && styles.split, phone && styles.pricePhone]}>
+        <View {...webClass('vt-split')} style={[styles.price, desktop && styles.split, phone && styles.pricePhone]}>
           <View style={styles.heroCopy}>
             <SectionLabel>Price</SectionLabel>
             <View style={styles.priceFigureRow}>
@@ -416,6 +428,7 @@ export function LandingScreen() {
                 accessibilityRole="header"
                 {...({ accessibilityLevel: 2 } as object)}
                 style={[styles.priceFigure, phone && styles.priceFigurePhone, DISPLAY]}
+                {...webClass('vt-price-figure')}
               >
                 R{LEGAL.priceZar}
               </Text>

@@ -1,5 +1,5 @@
 import React, { ReactNode, useEffect } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MeetingProMark } from '../MeetingProMark';
 import { SiteLink } from './SiteLink';
@@ -8,7 +8,8 @@ import { COLORS, FONT, SPACING, BRAND } from '../../constants/theme';
 import { COMPANY, PRODUCT } from '../../constants/brand';
 import { LEGAL } from '../../constants/legal';
 import { GLASS } from '../../constants/glass';
-import { webOnlyStyle } from '../../utils/webStyles';
+import { webClass, webOnlyStyle } from '../../utils/webStyles';
+import { useSiteViewport } from '../../hooks/useSiteViewport';
 import { useAuth } from '../../contexts/AuthContext';
 import { openSitePath } from '../../lib/sitePath';
 import { TestModeRibbon } from './TestModeRibbon';
@@ -23,10 +24,7 @@ type Props = {
 };
 
 export function SiteChrome({ children, active }: Props) {
-  const { width } = useWindowDimensions();
-  const phone = width < 600;
-  const tablet = width >= 600 && width < 1024;
-  const compact = width < 1024;
+  const { phone, tablet, compact } = useSiteViewport();
   const { isSignedIn } = useAuth();
   const reduceMotion = useReducedMotion();
   const padH = phone ? 16 : tablet ? 28 : 32;
@@ -68,6 +66,7 @@ export function SiteChrome({ children, active }: Props) {
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <TestModeRibbon />
         <View
+          {...webClass('vt-nav')}
           style={[
             styles.nav,
             { paddingHorizontal: padH },
@@ -121,6 +120,7 @@ export function SiteChrome({ children, active }: Props) {
           <View
             accessibilityRole="navigation"
             accessibilityLabel="Site"
+            {...webClass('vt-nav-links')}
             style={[styles.navLinks, phone && styles.navLinksPhone]}
           >
             <SiteLink href="/" style={[styles.link, active === 'home' && styles.linkOn]}>

@@ -92,6 +92,77 @@ export function injectPublicSiteCss(): void {
       cursor: pointer;
     }
 
+    /* CSS breakpoints so phone/tablet never keep a laptop flex row. */
+    @media (max-width: 1023px) {
+      .vt-split {
+        flex-direction: column !important;
+        align-items: stretch !important;
+      }
+      .vt-stage-desk {
+        position: relative !important;
+        left: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        margin-top: 12px !important;
+      }
+      .vt-h1 {
+        font-size: 40px !important;
+        line-height: 46px !important;
+        letter-spacing: -1px !important;
+      }
+      .vt-h2 {
+        font-size: 28px !important;
+        line-height: 34px !important;
+      }
+      .vt-statement {
+        font-size: 28px !important;
+        line-height: 36px !important;
+      }
+      .vt-who-cards {
+        flex-direction: column !important;
+      }
+    }
+
+    @media (max-width: 599px) {
+      .vt-nav {
+        flex-direction: column !important;
+        align-items: stretch !important;
+      }
+      .vt-nav-links {
+        width: 100% !important;
+        justify-content: space-between !important;
+      }
+      .vt-h1 {
+        font-size: 30px !important;
+        line-height: 36px !important;
+        letter-spacing: -0.8px !important;
+      }
+      .vt-h2 {
+        font-size: 24px !important;
+        line-height: 30px !important;
+      }
+      .vt-statement {
+        font-size: 22px !important;
+        line-height: 28px !important;
+      }
+      .vt-lede {
+        font-size: 16px !important;
+        line-height: 24px !important;
+      }
+      .vt-tile {
+        width: 100% !important;
+        min-width: 0 !important;
+        flex-basis: 100% !important;
+      }
+      .vt-price-figure {
+        font-size: 48px !important;
+        line-height: 52px !important;
+      }
+      .vt-section {
+        padding-top: 40px !important;
+      }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .vt-story-wash {
         animation: none !important;
@@ -116,6 +187,10 @@ export function injectPublicSiteCss(): void {
     }
   `;
   document.head.appendChild(styleEl);
+}
+
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  injectPublicSiteCss();
 }
 
 export const PUBLIC_GRAIN =
