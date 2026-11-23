@@ -22,6 +22,8 @@ import { useDashboardStats } from '../data/dashboardStats';
 import { formatCallDuration } from '../data/callHistory';
 import { MainTabParamList, RootStackParamList } from '../types';
 import { DATA_SOURCE } from '../data/transcriptSource';
+import { useWorkspace } from '../contexts/WorkspaceContext';
+import { resolveAppDataEnvironment } from '../lib/demoEnvironment';
 
 type HomeNav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Home'>,
@@ -35,6 +37,8 @@ export function HomeScreen({ navigation }: Props) {
   const palette = COLORS[effectiveTheme];
   const analytics = useCallAnalytics();
   const dashboard = useDashboardStats();
+  const workspace = useWorkspace();
+  const testMode = resolveAppDataEnvironment(workspace.isDemoData) !== 'supabase_live';
 
   const onRefresh = () => {
     dashboard.reload();
@@ -159,7 +163,7 @@ export function HomeScreen({ navigation }: Props) {
               </GlassCard>
             ) : null}
 
-            <SectionHeader title="Call volume (7 days)" />
+            <SectionHeader title={testMode ? 'Call volume (7 days) · TEST MODE' : 'Call volume (7 days)'} />
             <GlassCard style={styles.chartCard}>
               <StackedBarChart data={analytics.volumeByDay} />
             </GlassCard>

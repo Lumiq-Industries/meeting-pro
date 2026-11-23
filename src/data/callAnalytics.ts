@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
-import { useCallHistory, CallRecord, formatCallDuration } from './callHistory';
+import { useCallHistory, CallRecord, formatCallDuration, localDayKey } from './callHistory';
 import { useDashboardStats } from './dashboardStats';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import { DATA_SOURCE } from './transcriptSource';
-import { demoCallOutcomes } from './demoCallRecords';
+import { demoCallOutcomes, demoCallRecords } from './demoCallRecords';
 
 export type BusinessOutcome = 'positive' | 'neutral' | 'negative' | 'unknown';
 
@@ -60,23 +61,32 @@ function normalizePhone(raw: string | null): string {
   return raw.replace(/\D/g, '');
 }
 
-function outcomeForCall(call: CallRecord): BusinessOutcome {
-  if (DATA_SOURCE === 'mock') {
+function isTestMode(isDemoData: boolean): boolean {
+  return DATA_SOURCE === 'mock' || isDemoData;
+}
+
+function outcomeForCall(call: CallRecord, testMode: boolean): BusinessOutcome {
+  if (testMode) {
     return demoCallOutcomes[call.id] ?? 'unknown';
   }
   if (call.transcriptState === 'ready' && call.transcriptTitle) return 'unknown';
   return 'unknown';
 }
 
+function volumeWindowHasData(days: DayVolume[]): boolean {
+  return days.some((d) => d.answered + d.missed > 0);
+}
+
 function buildVolumeByDay(calls: CallRecord[]): DayVolume[] {
   const days: DayVolume[] = [];
   const now = new Date();
+  now.setHours(12, 0, 0, 0);
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
+    const key = localDayKey(d);
     const label = d.toLocaleDateString('en-ZA', { weekday: 'short' });
-    const dayCalls = calls.filter((c) => c.startedAt?.slice(0, 10) === key);
+    const dayCalls = calls.filter((c) => localDayKey(c.startedAt) === key);
     days.push({
       label,
       answered: dayCalls.filter(isAnswered).length,
@@ -86,7 +96,7 @@ function buildVolumeByDay(calls: CallRecord[]): DayVolume[] {
   return days;
 }
 
-function buildContactStats(calls: CallRecord[]): ContactCallStats[] {
+function buildContactStats(calls: CallRecord[], testMode: boolean): ContactCallStats[] {
   const map = new Map<
     string,
     {
@@ -122,7 +132,7 @@ function buildContactStats(calls: CallRecord[]): ContactCallStats[] {
     } else if (isMissed(call)) {
       entry.missed += 1;
     }
-    entry.lastOutcome = outcomeForCall(call);
+    entry.lastOutcome = outcomeForCall(call, testMode);
     map.set(key, entry);
   }
 
@@ -144,38 +154,44 @@ function buildContactStats(calls: CallRecord[]): ContactCallStats[] {
 export function useCallAnalytics(): CallAnalytics {
   const { calls, loading: callsLoading, error: callsError } = useCallHistory();
   const dashboard = useDashboardStats();
+  const { isDemoData } = useWorkspace();
 
   return useMemo(() => {
+    const testMode = isTestMode(isDemoData);
     const loading = callsLoading || dashboard.loading;
     const error = callsError ?? dashboard.error;
 
-    const answered = calls.filter(isAnswered).length;
-    const missed = calls.filter(isMissed).length;
-    const totalCalls = calls.length;
+    let volumeByDay = buildVolumeByDay(calls);
+    const series =
+      testMode && !volumeWindowHasData(volumeByDay) ? demoCallRecords : calls;
+    if (series !== calls) volumeByDay = buildVolumeByDay(series);
+
+    const answered = series.filter(isAnswered).length;
+    const missed = series.filter(isMissed).length;
+    const totalCalls = series.length;
     const answerRate = totalCalls > 0 ? answered / totalCalls : null;
 
-    const durations = calls
+    const durations = series
       .map((c) => c.durationSeconds)
       .filter((s): s is number => s != null && s > 0);
     const avgDurationSeconds =
       durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : null;
 
-    const outcomes = calls.map(outcomeForCall);
-    const positiveOutcomes =
-      DATA_SOURCE === 'mock'
-        ? outcomes.filter((o) => o === 'positive').length
-        : null;
+    const outcomes = series.map((c) => outcomeForCall(c, testMode));
+    const positiveOutcomes = testMode
+      ? outcomes.filter((o) => o === 'positive').length
+      : null;
     const knownOutcomes = outcomes.filter((o) => o !== 'unknown').length;
     const outcomeRate =
       knownOutcomes > 0 && positiveOutcomes != null ? positiveOutcomes / knownOutcomes : null;
 
     const minutesEmailed =
-      dashboard.sessions != null
-        ? calls.filter((c) => c.transcriptState === 'ready').length
+      dashboard.sessions != null || testMode
+        ? series.filter((c) => c.transcriptState === 'ready').length
         : null;
 
     return {
-      loading,
+      loading: testMode ? false : loading,
       error,
       totalCalls,
       answered,
@@ -188,10 +204,10 @@ export function useCallAnalytics(): CallAnalytics {
       minutesEmailed,
       positiveOutcomes,
       outcomeRate,
-      medianTimeToTranscriptMinutes: DATA_SOURCE === 'mock' ? 4.2 : null,
-      volumeByDay: buildVolumeByDay(calls),
-      contactStats: buildContactStats(calls),
-      recentCalls: calls.slice(0, 5),
+      medianTimeToTranscriptMinutes: testMode ? 4.2 : null,
+      volumeByDay,
+      contactStats: buildContactStats(series, testMode),
+      recentCalls: series.slice(0, 5),
     };
-  }, [calls, callsLoading, callsError, dashboard]);
+  }, [calls, callsLoading, callsError, dashboard, isDemoData]);
 }

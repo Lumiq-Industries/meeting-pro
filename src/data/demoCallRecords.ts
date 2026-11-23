@@ -1,12 +1,20 @@
 import type { CallRecord } from './callHistory';
 
-/** Demo call log for EXPO_PUBLIC_DATA_SOURCE=mock — powers dashboard metrics. */
+/** Local wall-clock timestamp `daysAgo` days before today — keeps the 7-day chart current. */
+function testStartedAt(daysAgo: number, hour: number, minute: number): string {
+  const d = new Date();
+  d.setHours(hour, minute, 0, 0);
+  d.setDate(d.getDate() - daysAgo);
+  return d.toISOString();
+}
+
+/** TEST MODE call log (mock DATA_SOURCE and Khaya demonstration fallback). */
 export const demoCallRecords: CallRecord[] = [
   {
     id: 'c-test-sandton',
     counterparty: 'Lesedi Mokoena',
     direction: 'user_initiated',
-    startedAt: '2026-11-20T09:14:00Z',
+    startedAt: testStartedAt(1, 9, 14),
     durationSeconds: 712,
     status: 'COMPLETED',
     transcriptId: 't-test-sandton-handover',
@@ -17,7 +25,7 @@ export const demoCallRecords: CallRecord[] = [
     id: 'c1',
     counterparty: '+27 82 441 2201',
     direction: 'user_initiated',
-    startedAt: '2026-10-19T08:15:00Z',
+    startedAt: testStartedAt(0, 8, 15),
     durationSeconds: 2520,
     status: 'COMPLETED',
     transcriptId: 't1',
@@ -28,7 +36,7 @@ export const demoCallRecords: CallRecord[] = [
     id: 'c2',
     counterparty: '+27 83 902 1188',
     direction: 'business_initiated',
-    startedAt: '2026-10-18T14:02:00Z',
+    startedAt: testStartedAt(1, 14, 2),
     durationSeconds: 1080,
     status: 'COMPLETED',
     transcriptId: 't4',
@@ -39,7 +47,7 @@ export const demoCallRecords: CallRecord[] = [
     id: 'c3',
     counterparty: '+27 71 555 0142',
     direction: 'user_initiated',
-    startedAt: '2026-10-18T09:40:00Z',
+    startedAt: testStartedAt(2, 9, 40),
     durationSeconds: null,
     status: 'NO_ANSWER',
     transcriptId: null,
@@ -50,7 +58,7 @@ export const demoCallRecords: CallRecord[] = [
     id: 'c4',
     counterparty: '+27 82 441 2201',
     direction: 'business_initiated',
-    startedAt: '2026-10-17T16:20:00Z',
+    startedAt: testStartedAt(2, 16, 20),
     durationSeconds: 540,
     status: 'COMPLETED',
     transcriptId: 't2',
@@ -61,7 +69,7 @@ export const demoCallRecords: CallRecord[] = [
     id: 'c5',
     counterparty: '+27 84 120 8890',
     direction: 'user_initiated',
-    startedAt: '2026-10-17T11:05:00Z',
+    startedAt: testStartedAt(3, 11, 5),
     durationSeconds: 1860,
     status: 'COMPLETED',
     transcriptId: 't5',
@@ -72,7 +80,7 @@ export const demoCallRecords: CallRecord[] = [
     id: 'c6',
     counterparty: '+27 83 902 1188',
     direction: 'business_initiated',
-    startedAt: '2026-10-16T08:30:00Z',
+    startedAt: testStartedAt(4, 8, 30),
     durationSeconds: null,
     status: 'BUSY',
     transcriptId: null,
@@ -83,7 +91,7 @@ export const demoCallRecords: CallRecord[] = [
     id: 'c7',
     counterparty: '+27 82 441 2201',
     direction: 'user_initiated',
-    startedAt: '2026-10-15T13:10:00Z',
+    startedAt: testStartedAt(5, 13, 10),
     durationSeconds: 720,
     status: 'COMPLETED',
     transcriptId: null,
@@ -94,7 +102,7 @@ export const demoCallRecords: CallRecord[] = [
     id: 'c8',
     counterparty: '+27 84 120 8890',
     direction: 'business_initiated',
-    startedAt: '2026-10-14T10:00:00Z',
+    startedAt: testStartedAt(6, 10, 0),
     durationSeconds: 1320,
     status: 'COMPLETED',
     transcriptId: null,
@@ -105,8 +113,9 @@ export const demoCallRecords: CallRecord[] = [
 
 export type DemoBusinessOutcome = 'positive' | 'neutral' | 'negative';
 
-/** AI-style outcome labels for demo transcripts / calls (mock only). */
+/** Outcome labels for TEST MODE transcripts / calls (mock and Khaya demonstration). */
 export const demoCallOutcomes: Record<string, DemoBusinessOutcome> = {
+  'c-test-sandton': 'positive',
   c1: 'positive',
   c2: 'neutral',
   c4: 'positive',

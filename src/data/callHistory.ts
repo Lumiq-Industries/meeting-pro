@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSupabase } from '../contexts/SupabaseContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../lib/database.types';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import { DATA_SOURCE } from './transcriptSource';
 import { demoCallRecords } from './demoCallRecords';
 
@@ -73,6 +74,30 @@ export function formatCallNumber(raw: string | null): string | null {
   return `+${cc} ${rest.slice(0, 2)} ${rest.slice(2, 5)} ${rest.slice(5)}`;
 }
 
+/** Calendar day in local time — chart buckets must match weekday labels, not UTC. */
+export function localDayKey(value: Date | string | null | undefined): string | null {
+  if (value == null) return null;
+  const d = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function mergeTestCallRecords(remote: CallRecord[]): CallRecord[] {
+  const byId = new Map<string, CallRecord>();
+  for (const call of remote) byId.set(call.id, call);
+  for (const call of demoCallRecords) {
+    if (!byId.has(call.id)) byId.set(call.id, call);
+  }
+  return [...byId.values()].sort((a, b) => {
+    const ta = a.startedAt ? Date.parse(a.startedAt) : 0;
+    const tb = b.startedAt ? Date.parse(b.startedAt) : 0;
+    return tb - ta;
+  });
+}
+
 function mapRows(data: DbCallRow[]): CallRecord[] {
   return data.map((row) => {
     const transcript = firstTranscript(row.transcripts);
@@ -117,10 +142,13 @@ async function fetchCallHistory(
 
 export function useCallHistory(): CallHistoryState {
   const supabase = useSupabase();
+  const { isDemoData } = useWorkspace();
   /** Unique per hook instance — Home + Contacts both call useCallHistory; shared channel names crash realtime. */
   const channelScope = useRef(`ch-${Math.random().toString(36).slice(2, 11)}`);
-  const [calls, setCalls] = useState<CallRecord[]>([]);
-  const [loading, setLoading] = useState(DATA_SOURCE === 'supabase');
+  const [calls, setCalls] = useState<CallRecord[]>(
+    DATA_SOURCE === 'mock' || isDemoData ? demoCallRecords : []
+  );
+  const [loading, setLoading] = useState(DATA_SOURCE === 'supabase' && !isDemoData);
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
   const reload = useCallback(() => setNonce((n) => n + 1), []);
@@ -139,7 +167,7 @@ export function useCallHistory(): CallHistoryState {
       const result = await fetchCallHistory(supabase);
       if (cancelled) return;
       setError(result.error);
-      setCalls(result.calls);
+      setCalls(isDemoData ? mergeTestCallRecords(result.calls) : result.calls);
       setLoading(false);
     };
 
@@ -167,7 +195,7 @@ export function useCallHistory(): CallHistoryState {
       supabase.removeChannel(callsChannel);
       supabase.removeChannel(transcriptsChannel);
     };
-  }, [nonce, supabase]);
+  }, [nonce, supabase, isDemoData]);
 
   return { calls, loading, error, reload };
 }

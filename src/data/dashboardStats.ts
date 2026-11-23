@@ -9,6 +9,7 @@
 //     it. Home and Settings show "Not set" until there is a real source.
 import { useCallback, useEffect, useState } from 'react';
 import { useSupabase } from '../contexts/SupabaseContext';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import { DATA_SOURCE } from './transcriptSource';
 import { demoTranscripts } from './demoTranscripts';
 import { demoCallRecords } from './demoCallRecords';
@@ -85,10 +86,11 @@ function demoCounts(): DashboardCounts {
 
 export function useDashboardStats(): DashboardState {
   const supabase = useSupabase();
+  const { isDemoData } = useWorkspace();
   const [counts, setCounts] = useState<DashboardCounts>(
-    DATA_SOURCE === 'mock' ? demoCounts() : UNKNOWN
+    DATA_SOURCE === 'mock' || isDemoData ? demoCounts() : UNKNOWN
   );
-  const [loading, setLoading] = useState(DATA_SOURCE === 'supabase');
+  const [loading, setLoading] = useState(DATA_SOURCE === 'supabase' && !isDemoData);
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
   const reload = useCallback(() => setNonce((n) => n + 1), []);
@@ -96,7 +98,7 @@ export function useDashboardStats(): DashboardState {
   useEffect(() => {
     if (DATA_SOURCE === 'mock') return;
     let cancelled = false;
-    setLoading(true);
+    if (!isDemoData) setLoading(true);
 
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -143,7 +145,7 @@ export function useDashboardStats(): DashboardState {
       const rows = valueOf(durations as PromiseSettledResult<{ duration_seconds: number | null }[]>);
       const numberCount = valueOf(numbers as PromiseSettledResult<number>);
 
-      setCounts({
+      const next: DashboardCounts = {
         sessions: valueOf(sessions as PromiseSettledResult<number>),
         hours:
           rows === null ? null : rows.length === 0 ? null : rows.reduce((sum, r) => sum + (r.duration_seconds ?? 0), 0) / 3600,
@@ -151,7 +153,10 @@ export function useDashboardStats(): DashboardState {
         callsThisWeek: valueOf(callsThisWeek as PromiseSettledResult<number>),
         whatsappConnected: numberCount === null ? null : numberCount > 0,
         transcriptsFailed: valueOf(transcriptsFailed as PromiseSettledResult<number>),
-      });
+      };
+      setCounts(
+        isDemoData && (next.sessions == null || next.sessions === 0) ? demoCounts() : next
+      );
 
       const failures = settled.filter((r) => r.status === 'rejected');
       setError(
@@ -165,7 +170,7 @@ export function useDashboardStats(): DashboardState {
     return () => {
       cancelled = true;
     };
-  }, [nonce, supabase]);
+  }, [nonce, supabase, isDemoData]);
 
   return {
     ...counts,
