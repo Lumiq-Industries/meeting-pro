@@ -4,6 +4,7 @@ import { SiteChrome } from '../../components/site/SiteChrome';
 import { SiteCta } from '../../components/site/SiteCta';
 import { LandingReveal } from '../../components/site/LandingReveal';
 import {
+  HeroVoiceMark,
   IconActions,
   IconClock,
   IconEmail,
@@ -55,7 +56,7 @@ const BEATS = [
     title: 'They call',
     body: 'The client dials the WhatsApp Business number they already save.',
     Icon: IconHandset,
-    tint: '#25D366',
+    tint: '#7DD3FC',
   },
   {
     n: '02',
@@ -112,12 +113,10 @@ function IconWell({ children, tint }: { children: ReactNode; tint?: string }) {
     <View
       style={[
         styles.iconWell,
-        tint === '#25D366' && styles.iconWellGreen,
+        tint === '#7DD3FC' && styles.iconWellSignal,
         webOnlyStyle({
           background:
-            tint === '#25D366'
-              ? 'rgba(37, 211, 102, 0.12)'
-              : 'rgba(255,255,255,0.06)',
+            tint === '#7DD3FC' ? 'rgba(56, 189, 248, 0.12)' : 'rgba(255,255,255,0.06)',
         }),
       ]}
     >
@@ -170,38 +169,25 @@ export function LandingScreen() {
       <View {...webClass('vt-split')} style={[styles.hero, desktop && styles.split, phone && styles.heroPhone]}>
         <View style={styles.heroCopy}>
           <SectionLabel>{`${COMPANY.name}  ·  ${PRODUCT.name}  ·  TEST MODE`}</SectionLabel>
-          <Text
-            accessibilityRole="header"
-            {...({ accessibilityLevel: 1 } as object)}
-            style={[styles.h1, tablet && styles.h1Tablet, phone && styles.h1Phone, DISPLAY]}
-            {...webClass('vt-h1')}
-          >
-            Every WhatsApp Business call, written down.
-          </Text>
+          <View style={[styles.heroTitleRow, phone && styles.heroTitleRowPhone]}>
+            <View style={[styles.heroMark, phone && styles.heroMarkPhone]}>
+              <HeroVoiceMark size={phone ? 36 : tablet ? 44 : 52} />
+            </View>
+            <View style={styles.heroHeadline}>
+              <Text
+                accessibilityRole="header"
+                {...({ accessibilityLevel: 1 } as object)}
+                style={[styles.h1, tablet && styles.h1Tablet, phone && styles.h1Phone, DISPLAY]}
+                {...webClass('vt-h1')}
+              >
+                Every WhatsApp Business call, written down.
+              </Text>
+            </View>
+          </View>
           <Text style={[styles.lede, phone && styles.ledePhone]} {...webClass('vt-lede')}>
             {PRODUCT.name} sits on the number they already call. When the line goes dead you still
             have the transcript, the decisions, and the action list — so the work leaves the phone.
           </Text>
-          <View style={styles.iconStrip} accessibilityLabel="Product pieces">
-            <IconWell tint="#25D366">
-              <IconHandset size={22} color="#25D366" label="Handset and conversation bubble" />
-            </IconWell>
-            <IconWell>
-              <IconTranscript size={22} label="Transcript" />
-            </IconWell>
-            <IconWell>
-              <IconMinutes size={22} label="Minutes" />
-            </IconWell>
-            <IconWell>
-              <IconActions size={22} label="Actions" />
-            </IconWell>
-            <IconWell>
-              <IconEmail size={22} label="Email" />
-            </IconWell>
-            <IconWell>
-              <IconClock size={22} label="Clock" />
-            </IconWell>
-          </View>
           <View style={styles.ctaRow}>
             <SiteCta label={cta} />
           </View>
@@ -403,7 +389,7 @@ export function LandingScreen() {
           <SectionLabel>Example · TEST MODE</SectionLabel>
           <View style={[styles.example, LIQUID]} accessibilityLabel="Small Sandton test-call snippet">
             <View style={styles.exampleHead}>
-              <IconHandset size={20} color="#25D366" label="Test call" />
+              <IconHandset size={20} color="#7DD3FC" label="Test call" />
               <View style={{ flex: 1 }}>
                 <Text style={styles.exampleKicker}>Khaya · unit 12B Sandton · one sample</Text>
                 <Text style={styles.exampleTitle}>Handover call, 12 minutes</Text>
@@ -465,6 +451,16 @@ const styles = StyleSheet.create({
     gap: 36,
   },
   heroCopy: { flex: 1.05, gap: 14, minWidth: 0 },
+  heroTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 16,
+    minWidth: 0,
+  },
+  heroTitleRowPhone: { gap: 12 },
+  heroMark: { marginTop: 6, flexShrink: 0 },
+  heroMarkPhone: { marginTop: 4 },
+  heroHeadline: { flex: 1, minWidth: 0 },
   heroVisual: {
     flex: 1.05,
     minWidth: 0,
@@ -515,7 +511,6 @@ const styles = StyleSheet.create({
   },
   ctaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
   fine: { color: palette.textMuted, fontSize: FONT.sm, lineHeight: 20, maxWidth: 420 },
-  iconStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   iconWell: {
     width: 44,
     height: 44,
@@ -526,8 +521,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.05)',
   },
-  iconWellGreen: {
-    borderColor: 'rgba(37, 211, 102, 0.45)',
+  iconWellSignal: {
+    borderColor: 'rgba(125, 211, 252, 0.4)',
   },
   stage: {
     position: 'absolute',

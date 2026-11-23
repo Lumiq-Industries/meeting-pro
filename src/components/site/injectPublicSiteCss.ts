@@ -92,6 +92,31 @@ const PUBLIC_CSS = `
       pointer-events: none;
     }
 
+    /*
+      html is the only scroller. overflow:hidden on #root/body would make
+      position:sticky stick to a non-scrolling ancestor — so the bar is fixed
+      and a spacer holds the hero clear of it.
+    */
+    #vt-site-chrome {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      z-index: 40 !important;
+      padding-top: env(safe-area-inset-top, 0px) !important;
+      background: linear-gradient(180deg, rgba(8,8,8,0.78) 0%, rgba(8,8,8,0.46) 100%) !important;
+      backdrop-filter: blur(${GLASS.blur.webPx.tabBar}px) saturate(${GLASS.saturate.web}) !important;
+      -webkit-backdrop-filter: blur(${GLASS.blur.webPx.tabBar}px) saturate(${GLASS.saturate.web}) !important;
+    }
+    #vt-site-chrome-spacer {
+      display: block !important;
+      height: var(--vt-chrome-h, 118px) !important;
+      min-height: var(--vt-chrome-h, 118px) !important;
+      flex: none !important;
+      pointer-events: none !important;
+    }
+
     /* RN-web Image uses opacity 0 + z-index -1 until a load handler; both can stick.
        Never stretch bitmaps: cover crop inside the box, keep aspect. */
     img {
@@ -103,7 +128,6 @@ const PUBLIC_CSS = `
     }
 
     svg {
-      max-width: 100%;
       display: block;
     }
 
@@ -234,7 +258,8 @@ const PUBLIC_CSS = `
 
     @media (prefers-reduced-transparency: reduce) {
       .vt-liquid,
-      .vt-nav-glass {
+      .vt-nav-glass,
+      #vt-site-chrome {
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
         background: #0a0a0a !important;

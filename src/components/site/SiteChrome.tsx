@@ -37,7 +37,22 @@ export function SiteChrome({ children, active }: Props) {
   useEffect(() => {
     injectPublicSiteCss();
     lockPublicDocumentScroll();
-  }, []);
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return undefined;
+    const el = document.getElementById('vt-site-chrome');
+    if (!el) return undefined;
+    const apply = () => {
+      const h = Math.ceil(el.getBoundingClientRect().height);
+      document.documentElement.style.setProperty('--vt-chrome-h', `${Math.max(h, 72)}px`);
+    };
+    apply();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(apply) : null;
+    ro?.observe(el);
+    window.addEventListener('resize', apply);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', apply);
+    };
+  }, [phone, compact]);
 
   const navCta = isSignedIn ? 'Open test workspace' : 'Sign in · TEST MODE';
 
@@ -81,15 +96,29 @@ export function SiteChrome({ children, active }: Props) {
           webOnlyStyle({
             height: 'auto',
             flex: 'none',
-            paddingTop: 'env(safe-area-inset-top)',
+            paddingTop: 0,
             paddingBottom: 'env(safe-area-inset-bottom)',
           }),
         ]}
       >
         <View
+          nativeID="vt-site-chrome"
+          {...webClass('vt-site-chrome vt-nav-glass')}
           style={[
             styles.stickyChrome,
-            webOnlyStyle({ position: 'sticky', top: 0, zIndex: 30 }),
+            webOnlyStyle({
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 40,
+              width: '100%',
+              paddingTop: 'env(safe-area-inset-top)',
+              background:
+                'linear-gradient(180deg, rgba(8,8,8,0.78) 0%, rgba(8,8,8,0.46) 100%)',
+              backdropFilter: `blur(${GLASS.blur.webPx.tabBar}px) saturate(${GLASS.saturate.web})`,
+              WebkitBackdropFilter: `blur(${GLASS.blur.webPx.tabBar}px) saturate(${GLASS.saturate.web})`,
+            }),
           ]}
         >
         <TestModeRibbon />
@@ -100,12 +129,6 @@ export function SiteChrome({ children, active }: Props) {
             { paddingHorizontal: padH },
             phone && styles.navPhone,
             tablet && styles.navTablet,
-            webOnlyStyle({
-              background:
-                'linear-gradient(180deg, rgba(8,8,8,0.72) 0%, rgba(8,8,8,0.42) 100%)',
-              backdropFilter: `blur(${GLASS.blur.webPx.tabBar}px) saturate(${GLASS.saturate.web})`,
-              WebkitBackdropFilter: `blur(${GLASS.blur.webPx.tabBar}px) saturate(${GLASS.saturate.web})`,
-            }),
           ]}
         >
           <View style={[styles.navTop, phone && styles.navTopPhone]}>
@@ -175,6 +198,18 @@ export function SiteChrome({ children, active }: Props) {
           </View>
         </View>
         </View>
+        <View
+          nativeID="vt-site-chrome-spacer"
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={webOnlyStyle({
+            height: 'var(--vt-chrome-h, 118px)',
+            minHeight: 'var(--vt-chrome-h, 118px)',
+            flexGrow: 0,
+            flexShrink: 0,
+          })}
+        />
 
         <View style={[styles.page, styles.scrollInner]}>
           <View
@@ -231,7 +266,7 @@ const styles = StyleSheet.create({
   },
   grain: { ...StyleSheet.absoluteFill },
   safe: { zIndex: 1, flexGrow: 0, flexShrink: 0 },
-  stickyChrome: { backgroundColor: BRAND.black },
+  stickyChrome: {},
   page: { width: '100%', overflow: 'visible', flexGrow: 0 },
   nav: {
     flexDirection: 'row',

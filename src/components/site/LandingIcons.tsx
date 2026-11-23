@@ -31,25 +31,59 @@ function IconFrame({
   );
 }
 
-/** Original handset + conversation orb. Not the WhatsApp trademark glyph. */
-export function IconHandset({ size = 24, color = '#25D366', label = 'Voice call' }: IconProps) {
+/** Classic receiver only — not a phone-in-bubble, not a messenger trademark. */
+export function IconHandset({ size = 24, color = '#FAFAFA', label = 'Voice call' }: IconProps) {
   return (
     <IconFrame size={size} color={color} label={label}>
       <Path
-        d="M7.2 3.8c.7-.5 1.7-.3 2.1.5l1.1 2.1c.3.6.2 1.3-.3 1.7L9 9.2c.5 1.6 1.8 3 3.5 3.7l1.1-1.1c.5-.5 1.2-.6 1.8-.3l2.1 1.1c.8.4 1 1.4.5 2.1l-.8 1.2c-.5.8-1.5 1.2-2.4 1-3.9-.8-7.2-4.1-8.1-8.1-.2-.9.2-1.9 1-2.4l.5-.6z"
+        d="M8.2 3.6h2.4c.7 0 1.2.6 1.1 1.3l-.4 2.6c-.1.5-.5.9-1 .9H8.6c-.4 1.8-.3 3.6.4 5.3h1.7c.5 0 .9.4 1 .9l.4 2.6c.1.7-.4 1.3-1.1 1.3H8.2c-1.4 0-2.6-1-2.8-2.4C4.9 13.3 5 8.8 5.4 6C5.6 4.6 6.8 3.6 8.2 3.6z"
         stroke={color}
         strokeWidth={STROKE}
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M13.2 8.2c1.6.6 2.8 1.8 3.4 3.4M13.2 11.2c.8.3 1.4.9 1.7 1.7"
+        stroke={color}
+        strokeWidth={STROKE}
+        strokeLinecap="round"
+      />
+    </IconFrame>
+  );
+}
+
+/**
+ * Hero lockup mark: Meeting Pro waveform in a square tile.
+ * Original SVG — not the WhatsApp glyph, not a raster stretch.
+ */
+export function HeroVoiceMark({ size = 48 }: { size?: number }) {
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      accessibilityRole="image"
+      accessibilityLabel="Meeting Pro"
+    >
+      <Rect x="0.75" y="0.75" width="46.5" height="46.5" rx="13" fill="#0B0D12" />
+      <Rect x="0.75" y="0.75" width="46.5" height="46.5" rx="13" stroke="rgba(255,255,255,0.16)" />
+      <Path d="M8 9.5h32" stroke="rgba(255,255,255,0.1)" strokeWidth={1} />
+      <Path
+        d="M11 24.5c1.4-2.2 2.5-6.8 3.4-6.8s2.2 8.6 3.6 8.6 2.4-11.6 4-11.6 2.6 18.2 4.2 18.2 2.5-14.8 3.9-14.8 2.2 8.2 3.5 8.2 2.1-5.2 3.4-5.2"
+        stroke="#7DD3FC"
+        strokeWidth={1.7}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
-        d="M15.6 4.2h3.6c.7 0 1.2.6 1.2 1.2v2.4c0 .7-.5 1.2-1.2 1.2h-1.1l-1.4 1.1V8.9h-1.1c-.7 0-1.2-.5-1.2-1.2V5.4c0-.6.5-1.2 1.2-1.2z"
-        stroke={color}
-        strokeWidth={STROKE}
+        d="M11 24.5c1.4-2.2 2.5-6.8 3.4-6.8s2.2 8.6 3.6 8.6 2.4-11.6 4-11.6 2.6 18.2 4.2 18.2 2.5-14.8 3.9-14.8 2.2 8.2 3.5 8.2 2.1-5.2 3.4-5.2"
+        stroke="#38BDF8"
+        strokeWidth={1.7}
         strokeLinecap="round"
-        strokeLinejoin="round"
+        opacity={0.55}
       />
-    </IconFrame>
+      <Path d="M16 24.5h16" stroke="rgba(255,255,255,0.18)" strokeWidth={1} strokeLinecap="round" />
+    </Svg>
   );
 }
 

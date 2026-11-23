@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    backgroundColor: 'transparent',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(255,255,255,0.1)',
   },
