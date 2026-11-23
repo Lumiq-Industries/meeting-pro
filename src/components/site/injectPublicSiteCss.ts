@@ -7,13 +7,7 @@ const STYLE_ID = 'vilatech-public-site';
  * VILATECH public-site craft: story wash grain, liquid glass, display type,
  * focus rings, reduced-motion and reduced-transparency fallbacks.
  */
-export function injectPublicSiteCss(): void {
-  if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-  if (document.getElementById(STYLE_ID)) return;
-
-  const styleEl = document.createElement('style');
-  styleEl.id = STYLE_ID;
-  styleEl.textContent = `
+const PUBLIC_CSS = `
     @keyframes vilatech-story-ambient {
       0% { transform: translate3d(0, 0, 0) scale(1); }
       50% { transform: translate3d(3%, 2.5%, 0) scale(1.05); }
@@ -32,9 +26,46 @@ export function injectPublicSiteCss(): void {
 
     html, body, #root {
       background: #000;
-      min-height: 100%;
-      overflow-x: hidden;
+      min-height: 100vh;
       max-width: 100%;
+    }
+
+    /* Public marketing pages: one document scrollbar. Inner RN ScrollView is off. */
+    html.vt-public-scroll {
+      height: auto !important;
+      min-height: 100vh;
+      overflow-x: hidden !important;
+      overflow-y: auto !important;
+    }
+    html.vt-public-scroll body,
+    html.vt-public-scroll #root {
+      display: block !important;
+      height: auto !important;
+      min-height: 100vh;
+      overflow: visible !important;
+      flex: none !important;
+    }
+    html.vt-public-scroll #root > div,
+    html.vt-public-scroll .vt-site-root,
+    html.vt-public-scroll .vt-site-body {
+      height: auto !important;
+      min-height: 0 !important;
+      flex: none !important;
+    }
+    html.vt-public-scroll .vt-site-root {
+      overflow: clip !important;
+      min-height: 100vh !important;
+    }
+    html.vt-public-scroll .vt-story-wash,
+    html.vt-public-scroll .vt-story-grain {
+      position: fixed !important;
+      top: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      width: auto !important;
+      height: auto !important;
+      pointer-events: none;
     }
 
     /* RN-web Image uses opacity 0 + z-index -1 until a load handler; both can stick.
@@ -185,8 +216,17 @@ export function injectPublicSiteCss(): void {
         background: #0a0a0a !important;
       }
     }
-  `;
-  document.head.appendChild(styleEl);
+`;
+
+export function injectPublicSiteCss(): void {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+  let styleEl = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = STYLE_ID;
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = PUBLIC_CSS;
 }
 
 if (Platform.OS === 'web' && typeof document !== 'undefined') {

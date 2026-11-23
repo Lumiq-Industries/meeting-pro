@@ -21,11 +21,13 @@ export function WebAppFrame({ children }: WebAppFrameProps) {
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    document.documentElement.classList.remove('vt-public-scroll');
     document.documentElement.style.height = '100%';
     document.body.style.height = '100%';
     document.body.style.margin = '0';
-    document.body.style.overflow = 'auto';
-    document.documentElement.style.overflow = 'auto';
+    /* Frame does not scroll; tab/auth ScrollView is the only bar. */
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
     document.body.style.backgroundColor = VILATECH_CANVAS.background;
 
     const root = document.getElementById('root');
@@ -33,6 +35,7 @@ export function WebAppFrame({ children }: WebAppFrameProps) {
       root.style.height = '100%';
       root.style.display = 'flex';
       root.style.flexDirection = 'column';
+      root.style.overflow = 'hidden';
     }
 
     const id = 'meeting-pro-web-frame-keyframes';

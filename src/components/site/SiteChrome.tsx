@@ -1,6 +1,5 @@
 import React, { ReactNode, useEffect } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MeetingProMark } from '../MeetingProMark';
 import { SiteLink } from './SiteLink';
 import { SiteCta } from './SiteCta';
@@ -32,19 +31,43 @@ export function SiteChrome({ children, active }: Props) {
 
   useEffect(() => {
     injectPublicSiteCss();
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+
+    document.documentElement.classList.add('vt-public-scroll');
+    document.documentElement.style.height = 'auto';
+    document.body.style.height = 'auto';
+    document.body.style.margin = '0';
+    document.body.style.overflow = 'visible';
+    document.documentElement.style.overflowX = 'hidden';
+    document.documentElement.style.overflowY = 'auto';
+
+    const root = document.getElementById('root');
+    if (root) {
+      root.style.height = 'auto';
+      root.style.minHeight = '100%';
+      root.style.overflow = 'visible';
+      root.style.display = 'block';
+    }
+
+    return () => {
+      document.documentElement.classList.remove('vt-public-scroll');
+    };
   }, []);
 
   const navCta = isSignedIn ? 'Open test workspace' : 'Sign in · TEST MODE';
 
   return (
-    <View style={styles.root}>
+    <View {...webClass('vt-site-root')} style={[styles.root, webOnlyStyle({ height: 'auto' })]}>
       <View
         pointerEvents="none"
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
+        {...webClass('vt-story-wash')}
         style={[
           styles.wash,
           webOnlyStyle({
+            position: 'fixed',
+            inset: '0',
             background: PUBLIC_STORY_CSS,
             animation: reduceMotion ? 'none' : 'vilatech-story-ambient 36s ease-in-out infinite alternate',
             willChange: reduceMotion ? 'auto' : 'transform',
@@ -55,15 +78,35 @@ export function SiteChrome({ children, active }: Props) {
         pointerEvents="none"
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
+        {...webClass('vt-story-grain')}
         style={[
           styles.grain,
           webOnlyStyle({
+            position: 'fixed',
+            inset: '0',
             opacity: 0.028,
             backgroundImage: PUBLIC_GRAIN,
           }),
         ]}
       />
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <View
+        {...webClass('vt-site-body')}
+        style={[
+          styles.safe,
+          webOnlyStyle({
+            height: 'auto',
+            flex: 'none',
+            paddingTop: 'env(safe-area-inset-top)',
+            paddingBottom: 'env(safe-area-inset-bottom)',
+          }),
+        ]}
+      >
+        <View
+          style={[
+            styles.stickyChrome,
+            webOnlyStyle({ position: 'sticky', top: 0, zIndex: 30 }),
+          ]}
+        >
         <TestModeRibbon />
         <View
           {...webClass('vt-nav')}
@@ -146,12 +189,9 @@ export function SiteChrome({ children, active }: Props) {
             {!compact ? <SiteCta label={navCta} /> : null}
           </View>
         </View>
+        </View>
 
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollInner}
-          showsVerticalScrollIndicator
-        >
+        <View style={[styles.page, styles.scrollInner]}>
           <View
             accessibilityRole="summary"
             nativeID="main-content"
@@ -186,23 +226,28 @@ export function SiteChrome({ children, active }: Props) {
               <Text style={styles.footText}>{LEGAL.contactEmail}</Text>
             </View>
           </View>
-        </ScrollView>
-      </SafeAreaView>
+        </View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: BRAND.black, minHeight: '100%' as unknown as number },
+  root: {
+    flexGrow: 0,
+    flexShrink: 0,
+    backgroundColor: BRAND.black,
+    minHeight: '100vh' as unknown as number,
+    position: 'relative',
+    overflow: 'hidden',
+  },
   wash: {
-    position: 'absolute',
-    top: '-12%',
-    left: '-12%',
-    right: '-12%',
-    bottom: '-12%',
+    ...StyleSheet.absoluteFill,
   },
   grain: { ...StyleSheet.absoluteFill },
-  safe: { flex: 1, zIndex: 1 },
+  safe: { zIndex: 1, flexGrow: 0, flexShrink: 0 },
+  stickyChrome: { backgroundColor: BRAND.black },
+  page: { width: '100%', overflow: 'visible', flexGrow: 0 },
   nav: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -256,7 +301,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   navCtaCompactText: { color: '#0A0A0A', fontSize: FONT.sm, fontWeight: '700' },
-  scroll: { flex: 1 },
   scrollInner: { paddingBottom: 80, alignItems: 'center' },
   column: {
     width: '100%',

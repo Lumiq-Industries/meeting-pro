@@ -142,8 +142,14 @@ export default function App() {
   const publicWeb = Platform.OS === 'web' && isPublicSitePath(currentSitePath());
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, minHeight: 0 }}>
-      <SafeAreaProvider>
+    <GestureHandlerRootView
+      style={
+        publicWeb
+          ? { minHeight: '100vh' as unknown as number, flexGrow: 0 }
+          : { flex: 1, minHeight: 0 }
+      }
+    >
+      <SafeAreaProvider style={publicWeb ? { flexGrow: 0, flexShrink: 0 } : undefined}>
         <ClerkProvider
           publishableKey={clerkPublishableKey}
           localization={meetingProClerkLocalization}
