@@ -4,6 +4,7 @@ import { VILATECH_CANVAS, VILATECH_STORY, GLASS } from '../constants/glass';
 import { LAYOUT } from '../constants/layout';
 import { BRAND } from '../constants/theme';
 import { webOnlyStyle } from '../utils/webStyles';
+import { unlockPublicDocumentScroll } from './site/injectPublicSiteCss';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 
 interface WebAppFrameProps {
@@ -21,7 +22,7 @@ export function WebAppFrame({ children }: WebAppFrameProps) {
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-    document.documentElement.classList.remove('vt-public-scroll');
+    unlockPublicDocumentScroll();
     document.documentElement.style.height = '100%';
     document.body.style.height = '100%';
     document.body.style.margin = '0';

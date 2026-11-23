@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { GLASS, VILATECH_STORY } from '../../constants/glass';
+import { currentSitePath, isPublicSitePath } from '../../lib/sitePath';
 
 const STYLE_ID = 'vilatech-public-site';
 
@@ -30,10 +31,15 @@ const PUBLIC_CSS = `
       max-width: 100%;
     }
 
-    /* Public marketing pages: one document scrollbar. Inner RN ScrollView is off. */
+    /*
+      One window scrollbar on public pages.
+      Never set overflow-x:hidden on #root without overflow-y:hidden —
+      CSS then computes overflow-y to auto (second bar next to RN ScrollView).
+    */
     html.vt-public-scroll {
       height: auto !important;
-      min-height: 100vh;
+      min-height: 100vh !important;
+      max-height: none !important;
       overflow-x: hidden !important;
       overflow-y: auto !important;
     }
@@ -41,20 +47,38 @@ const PUBLIC_CSS = `
     html.vt-public-scroll #root {
       display: block !important;
       height: auto !important;
-      min-height: 100vh;
-      overflow: visible !important;
+      min-height: 100vh !important;
+      max-height: none !important;
+      overflow-x: hidden !important;
+      overflow-y: hidden !important;
       flex: none !important;
     }
     html.vt-public-scroll #root > div,
+    html.vt-public-scroll #root > div > div,
+    html.vt-public-scroll .vt-app-root,
     html.vt-public-scroll .vt-site-root,
     html.vt-public-scroll .vt-site-body {
       height: auto !important;
       min-height: 0 !important;
+      max-height: none !important;
       flex: none !important;
+      overflow-x: hidden !important;
+      overflow-y: hidden !important;
     }
     html.vt-public-scroll .vt-site-root {
-      overflow: clip !important;
+      overflow-x: clip !important;
+      overflow-y: clip !important;
       min-height: 100vh !important;
+    }
+    /* RN-web ScrollView always emits overflow-y:auto (.r-1rnoaur). Kill it here. */
+    html.vt-public-scroll .r-1rnoaur,
+    html.vt-public-scroll .r-150rngu {
+      overflow: hidden !important;
+      overflow-x: hidden !important;
+      overflow-y: hidden !important;
+      height: auto !important;
+      max-height: none !important;
+      flex: none !important;
     }
     html.vt-public-scroll .vt-story-wash,
     html.vt-public-scroll .vt-story-grain {
@@ -218,6 +242,52 @@ const PUBLIC_CSS = `
     }
 `;
 
+function setBoxOverflow(
+  el: HTMLElement,
+  overflowX: string,
+  overflowY: string,
+  height: string,
+): void {
+  el.style.setProperty('overflow-x', overflowX, 'important');
+  el.style.setProperty('overflow-y', overflowY, 'important');
+  el.style.setProperty('height', height, 'important');
+}
+
+/** Document is the only scroller on marketing pages. Call before first paint. */
+export function lockPublicDocumentScroll(): void {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+  if (!isPublicSitePath(currentSitePath())) return;
+  const html = document.documentElement;
+  html.classList.add('vt-public-scroll');
+  setBoxOverflow(html, 'hidden', 'auto', 'auto');
+  html.style.setProperty('min-height', '100vh', 'important');
+  if (document.body) {
+    document.body.style.margin = '0';
+    setBoxOverflow(document.body, 'hidden', 'hidden', 'auto');
+    document.body.style.setProperty('min-height', '100vh', 'important');
+  }
+  const root = document.getElementById('root');
+  if (root) {
+    root.style.setProperty('display', 'block', 'important');
+    root.style.setProperty('flex', 'none', 'important');
+    setBoxOverflow(root, 'hidden', 'hidden', 'auto');
+    root.style.setProperty('min-height', '100vh', 'important');
+  }
+}
+
+export function unlockPublicDocumentScroll(): void {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+  const html = document.documentElement;
+  html.classList.remove('vt-public-scroll');
+  ['overflow', 'overflow-x', 'overflow-y', 'height', 'min-height', 'display', 'flex'].forEach(
+    (prop) => {
+      html.style.removeProperty(prop);
+      document.body?.style.removeProperty(prop);
+      document.getElementById('root')?.style.removeProperty(prop);
+    },
+  );
+}
+
 export function injectPublicSiteCss(): void {
   if (Platform.OS !== 'web' || typeof document === 'undefined') return;
   let styleEl = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
@@ -227,6 +297,7 @@ export function injectPublicSiteCss(): void {
     document.head.appendChild(styleEl);
   }
   styleEl.textContent = PUBLIC_CSS;
+  lockPublicDocumentScroll();
 }
 
 if (Platform.OS === 'web' && typeof document !== 'undefined') {

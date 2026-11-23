@@ -28,6 +28,7 @@ import { clerkAppOrigin } from './lib/clerkRedirectUrls';
 import { meetingProClerkLocalization } from './lib/clerkLocalization';
 import { vilatechClerkAppearance } from './lib/clerkAppearance';
 import { currentSitePath, isPublicSitePath } from './lib/sitePath';
+import { webClass } from './utils/webStyles';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -143,13 +144,26 @@ export default function App() {
 
   return (
     <GestureHandlerRootView
+      {...(publicWeb ? webClass('vt-app-root') : undefined)}
       style={
         publicWeb
-          ? { minHeight: '100vh' as unknown as number, flexGrow: 0 }
+          ? {
+              minHeight: '100vh' as unknown as number,
+              flexGrow: 0,
+              flexShrink: 0,
+              flexBasis: 'auto' as unknown as number,
+              overflow: 'hidden',
+            }
           : { flex: 1, minHeight: 0 }
       }
     >
-      <SafeAreaProvider style={publicWeb ? { flexGrow: 0, flexShrink: 0 } : undefined}>
+      <SafeAreaProvider
+        style={
+          publicWeb
+            ? { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' as unknown as number, overflow: 'hidden' }
+            : undefined
+        }
+      >
         <ClerkProvider
           publishableKey={clerkPublishableKey}
           localization={meetingProClerkLocalization}

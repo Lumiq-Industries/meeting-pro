@@ -13,7 +13,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { openSitePath } from '../../lib/sitePath';
 import { TestModeRibbon } from './TestModeRibbon';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
-import { injectPublicSiteCss, PUBLIC_GRAIN, PUBLIC_STORY_CSS } from './injectPublicSiteCss';
+import {
+  injectPublicSiteCss,
+  lockPublicDocumentScroll,
+  PUBLIC_GRAIN,
+  PUBLIC_STORY_CSS,
+} from './injectPublicSiteCss';
 
 const palette = COLORS.dark;
 
@@ -31,27 +36,7 @@ export function SiteChrome({ children, active }: Props) {
 
   useEffect(() => {
     injectPublicSiteCss();
-    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-
-    document.documentElement.classList.add('vt-public-scroll');
-    document.documentElement.style.height = 'auto';
-    document.body.style.height = 'auto';
-    document.body.style.margin = '0';
-    document.body.style.overflow = 'visible';
-    document.documentElement.style.overflowX = 'hidden';
-    document.documentElement.style.overflowY = 'auto';
-
-    const root = document.getElementById('root');
-    if (root) {
-      root.style.height = 'auto';
-      root.style.minHeight = '100%';
-      root.style.overflow = 'visible';
-      root.style.display = 'block';
-    }
-
-    return () => {
-      document.documentElement.classList.remove('vt-public-scroll');
-    };
+    lockPublicDocumentScroll();
   }, []);
 
   const navCta = isSignedIn ? 'Open test workspace' : 'Sign in · TEST MODE';
